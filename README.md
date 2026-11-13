@@ -52,14 +52,13 @@ Built with **Fastify**, **TypeScript**, **Drizzle ORM**, **PostgreSQL 16**, **Ne
 
 ## Key Features
 
-### 1. Executive Bento Grid Dashboard
-* **Workforce Pulse Tile (8 cols):** Real-time monitoring of 10,000 personnel ($99.4\%$ active rate), $\$980,978,182.55$ normalized USD annualized spend, $\$85,225.50$ median base pay, and active entities ($6/6$) with a visual department spend proportion spectrum.
-* **Live FX Normalization Engine & Calculator (4 cols):** Interactive currency calculator converting local currency (`EUR`, `GBP`, `INR`, `SGD`, `JPY`) into normalized USD in real time using corporate planning rates.
-* **Functional Department Matrix (6 cols):** Interactive cards for Engineering ($36\%$), Sales ($20\%$), Product ($14\%$), Design ($10\%$), People ($10\%$), and Operations ($10\%$). **Clicking any card instantly filters the live 10,000 workforce grid.**
-* **Global Regional Benchmarks (6 cols):** Regional entity cards (`🇺🇸 US`, `🇩🇪 DE`, `🇬🇧 GB`, `🇸🇬 SG`, `🇯🇵 JP`, `🇮🇳 IN`). **Clicking any country card instantly filters the grid to that country.**
+### 1. Enterprise Left Navigation & Dashboard Layout
+* **Left Navigation Sidebar with Tree Structure:** Clean, modern tree navigation featuring expandable sub-filters (`All 10,000 Employees`, `Active Personnel (99.4%)`, `Department Spend`, `Regional Benchmarks`), dedicated routes for `Ask ACME Pay` Copilot, `Executive Analytics`, and `FX Normalization`, plus a permanent indicator confirming PostgreSQL 16 read-only security and Neutral Quiet Grays theme lock.
+* **Workforce Pulse & Stat Cards:** Real-time monitoring of 10,000 personnel ($99.4\%$ active rate), $\$980,978,182.55$ normalized USD annualized spend, $\$85,225.50$ median base pay, and active entities ($6/6$) with multi-colored segmented progress bars and status distribution indicators.
+* **Period & Status Tabs:** Instant slicing between `All 10,000`, `Active (99.4%)`, `Inactive`, `Terminated`, and `USD Normalized` without full page reload.
 
-### 2. Persistent AI Compensation Copilot (Always Open)
-* **Docked Side Panel:** Always visible alongside the grid on desktop viewports ($440\text{px}$ width) with collapse/expand toggle controls.
+### 2. Specialized Dedicated AI Compensation Copilot ("Ask ACME Pay")
+* **Dedicated Full-Page Assistant:** Specialized executive AI Assistant view powered by Groq (`openai/gpt-oss-120b`) with hot-swappable LLM strategies and offline rule-based fallback.
 * **Single-Employee Spotlight Card:** Queries targeting specific personnel (e.g., *"What is the salary of Magnus Davis?"*) display an executive profile card featuring the employee's initialed avatar, full name, code (`ACME-01964`), department, level, country flag, USD base salary, and local currency amount.
 * **Multi-Row Table Mode:** Aggregations and comparative queries render compact Astryx tables with tabular USD currency formatting.
 * **AST SQL Audit Drawer:** Collapsible drawer exposing the validated read-only SQL query and execution latency ($11\text{ms}$).
@@ -74,17 +73,13 @@ Built with **Fastify**, **TypeScript**, **Drizzle ORM**, **PostgreSQL 16**, **Ne
 * **Dual Currency Columns:** Formatted local compensation paired with normalized USD base pay and target bonus.
 * **Employee Management:** Slide-over drawer with Zod validation and live USD conversion preview.
 
-### 4. Meta Astryx Multi-Theme Ecosystem
-* **Live Theme Switcher:** Instant switching between 4 official Astryx themes via `@astryxdesign/theme-*`:
-  * **Stone (Default):** Montserrat headings, Figtree body, JetBrains Mono numbers, slate accents.
-  * **Neutral:** High-contrast monochrome enterprise grays.
-  * **Chocolate:** Fraunces editorial serif headings, Albert Sans body, rich caramel tones.
-  * **Matcha:** Organic earthy forest green palette with DM Sans body.
-* **Dynamic Light/Dark Mode:** Full token recalculation with persistence in `localStorage`.
+### 4. Locked Neutral Quiet Grays Enterprise Theme
+* **Locked Theme Engine:** Permanently locked to Meta Astryx **Neutral (Quiet Grays)** in Light Mode (`@astryxdesign/theme-neutral`).
+* **Clean & Professional:** Strict, high-contrast monochrome enterprise palette with no user-facing switchers or distractions, adhering strictly to enterprise financial dashboard standards.
 
-### 5. Interactive Guided Onboarding Tour
-* 5-step modal walkthrough with spotlight blur, step indicators, keyboard navigation (`ArrowLeft` / `ArrowRight` / `Escape`), and persistence.
-* Automatically triggers for first-time visitors and can be reopened anytime via the "Guided Tour" button in the TopNav.
+### 5. Dynamic Element-Anchored Guided Tour
+* **Interactive Spotlight Focus:** 6-step guided tour that dynamically computes DOM bounding rectangles (`getBoundingClientRect`), rendering a glowing spotlight cutout directly over the target element while dimming the surrounding UI.
+* **Anchored Action Callouts:** High-contrast callout popovers anchored directly adjacent to target elements with directional indicators, step progress dots, keyboard shortcuts (`ArrowLeft`, `ArrowRight`, `Escape`), and explicit action guidance (`nav-compensation`, `nav-ai-chat`, `period-tabs`, `personnel-card`, `filter-toolbar`, `add-employee-btn`).
 
 ---
 
