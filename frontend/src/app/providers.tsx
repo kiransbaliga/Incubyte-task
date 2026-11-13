@@ -19,7 +19,7 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  themeName: 'stone',
+  themeName: 'matcha',
   setThemeName: () => {},
   themeMode: 'light',
   setThemeMode: () => {},
@@ -30,10 +30,10 @@ export function useAppTheme() {
 }
 
 const THEME_MAP: Record<AppThemeName, any> = {
+  matcha: matchaTheme,
   stone: stoneTheme,
   neutral: neutralTheme,
   chocolate: chocolateTheme,
-  matcha: matchaTheme,
 };
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -49,7 +49,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       })
   );
 
-  const [themeName, setThemeName] = useState<AppThemeName>('stone');
+  const [themeName, setThemeName] = useState<AppThemeName>('matcha');
   const [themeMode, setThemeMode] = useState<AppThemeMode>('light');
 
   // Load persisted theme preference from localStorage if available
