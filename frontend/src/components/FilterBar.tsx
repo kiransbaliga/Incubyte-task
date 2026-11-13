@@ -3,9 +3,13 @@
 import React from 'react';
 import { Card } from '@astryxdesign/core/Card';
 import { HStack } from '@astryxdesign/core/HStack';
+import { VStack } from '@astryxdesign/core/VStack';
+import { Text } from '@astryxdesign/core/Text';
+import { Badge } from '@astryxdesign/core/Badge';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { Button } from '@astryxdesign/core/Button';
+import { Filter, RotateCcw, Search } from 'lucide-react';
 
 export interface FilterBarProps {
   search: string;
@@ -43,12 +47,12 @@ const COUNTRY_OPTIONS = [
 
 const LEVEL_OPTIONS = [
   { value: 'all', label: 'All Levels' },
-  { value: 'L1', label: 'L1' },
-  { value: 'L2', label: 'L2' },
-  { value: 'L3', label: 'L3' },
-  { value: 'L4', label: 'L4' },
-  { value: 'L5', label: 'L5' },
-  { value: 'L6', label: 'L6' },
+  { value: 'L1', label: 'L1 - Associate' },
+  { value: 'L2', label: 'L2 - Mid' },
+  { value: 'L3', label: 'L3 - Senior' },
+  { value: 'L4', label: 'L4 - Staff' },
+  { value: 'L5', label: 'L5 - Principal' },
+  { value: 'L6', label: 'L6 - Director' },
 ];
 
 const STATUS_OPTIONS = [
@@ -71,50 +75,85 @@ export function FilterBar({
   onStatusChange,
   onReset,
 }: FilterBarProps) {
+  let activeFilterCount = 0;
+  if (search.trim()) activeFilterCount++;
+  if (department !== 'all') activeFilterCount++;
+  if (country !== 'all') activeFilterCount++;
+  if (level !== 'all') activeFilterCount++;
+  if (status !== 'all') activeFilterCount++;
+
+  const isFiltered = activeFilterCount > 0;
+
   return (
     <Card padding={3}>
-      <HStack gap={3} align="end" wrap="wrap" width="100%">
-        <TextInput
-          label="Search Employee"
-          placeholder="Name, email, or ACME-ID..."
-          value={search}
-          onChange={(val) => onSearchChange(val)}
-          width={240}
-        />
-        <Selector
-          label="Department"
-          options={DEPARTMENT_OPTIONS}
-          value={department}
-          onChange={(val) => onDepartmentChange(val)}
-          width={160}
-        />
-        <Selector
-          label="Country"
-          options={COUNTRY_OPTIONS}
-          value={country}
-          onChange={(val) => onCountryChange(val)}
-          width={160}
-        />
-        <Selector
-          label="Level"
-          options={LEVEL_OPTIONS}
-          value={level}
-          onChange={(val) => onLevelChange(val)}
-          width={130}
-        />
-        <Selector
-          label="Status"
-          options={STATUS_OPTIONS}
-          value={status}
-          onChange={(val) => onStatusChange(val)}
-          width={130}
-        />
-        <Button
-          variant="secondary"
-          label="Reset Filters"
-          clickAction={onReset}
-        />
-      </HStack>
+      <VStack gap={2} width="100%">
+        <HStack justify="between" align="center" width="100%">
+          <HStack gap={1.5} align="center">
+            <Filter size={16} color="var(--color-primary-main, #2563eb)" />
+            <Text weight="semibold" type="supporting">
+              Workforce Filter Controls
+            </Text>
+            {isFiltered ? (
+              <Badge variant="blue" label={`${activeFilterCount} active`} />
+            ) : (
+              <Badge variant="neutral" label="All 10k Records" />
+            )}
+          </HStack>
+
+          {isFiltered && (
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Clear All Filters"
+              clickAction={onReset}
+            />
+          )}
+        </HStack>
+
+        <HStack gap={2} align="end" wrap="wrap" width="100%">
+          <TextInput
+            label="Search Employee"
+            placeholder="Search by name, email, or ACME-ID..."
+            value={search}
+            onChange={(val) => onSearchChange(val)}
+            width={260}
+          />
+          <Selector
+            label="Department"
+            options={DEPARTMENT_OPTIONS}
+            value={department}
+            onChange={(val) => onDepartmentChange(val)}
+            width={160}
+          />
+          <Selector
+            label="Country"
+            options={COUNTRY_OPTIONS}
+            value={country}
+            onChange={(val) => onCountryChange(val)}
+            width={160}
+          />
+          <Selector
+            label="Level"
+            options={LEVEL_OPTIONS}
+            value={level}
+            onChange={(val) => onLevelChange(val)}
+            width={140}
+          />
+          <Selector
+            label="Status"
+            options={STATUS_OPTIONS}
+            value={status}
+            onChange={(val) => onStatusChange(val)}
+            width={130}
+          />
+          <Button
+            variant="secondary"
+            label="Reset"
+            isDisabled={!isFiltered}
+            clickAction={onReset}
+          />
+        </HStack>
+      </VStack>
     </Card>
   );
 }

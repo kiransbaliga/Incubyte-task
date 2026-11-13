@@ -1,3 +1,19 @@
 @import '@astryxdesign/core/reset.css';
 @import '@astryxdesign/core/astryx.css';
+@import '@astryxdesign/theme-stone/fonts.css';
+@import '@astryxdesign/theme-stone/theme.css';
 @import '@astryxdesign/theme-neutral/theme.css';
+@import '@astryxdesign/theme-chocolate/fonts.css';
+@import '@astryxdesign/theme-chocolate/theme.css';
+@import '@astryxdesign/theme-matcha/fonts.css';
+@import '@astryxdesign/theme-matcha/theme.css';
+
+/* Custom polish animations and font fallbacks */
+:root {
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+[data-tabular-nums] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}

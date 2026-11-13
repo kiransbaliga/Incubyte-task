@@ -1,4 +1,4 @@
-import type { Employee, EmployeeFilters, StatsResponse, AIQueryResponse, FxRateItem } from './types';
+import type { Employee, EmployeeFilters, StatsResponse, AIQueryResponse, FxRateItem, AnalyticsResponse } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -51,6 +51,15 @@ export async function getStats(filters: Partial<EmployeeFilters>): Promise<Stats
   }
   const json = await res.json();
   return json.stats;
+}
+
+export async function getAnalytics(): Promise<AnalyticsResponse> {
+  const res = await fetch(`${API_BASE}/api/employees/analytics`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch analytics: ${res.statusText}`);
+  }
+  const json = await res.json();
+  return json.data;
 }
 
 export async function getEmployee(id: string): Promise<Employee> {

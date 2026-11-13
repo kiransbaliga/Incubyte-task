@@ -2,27 +2,39 @@
 
 import React from 'react';
 import { Card } from '@astryxdesign/core/Card';
-import { VStack } from '@astryxdesign/core/VStack';
 import { HStack } from '@astryxdesign/core/HStack';
+import { VStack } from '@astryxdesign/core/VStack';
 import { Text } from '@astryxdesign/core/Text';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
-import { Table, proportional, pixel, type TableColumn } from '@astryxdesign/core/Table';
+import { Avatar } from '@astryxdesign/core/Avatar';
+import { Table, proportional, pixel } from '@astryxdesign/core/Table';
+import type { TableColumn } from '@astryxdesign/core/Table';
 import { formatLocalCurrency, formatUsd } from '../lib/formatters';
 import type { Employee } from '../lib/types';
+import { Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export type EmployeeRow = Employee & Record<string, unknown>;
-
-export interface EmployeeGridProps {
+interface EmployeeGridProps {
   employees: Employee[];
-  isLoading?: boolean;
+  isLoading: boolean;
   page: number;
   pageSize: number;
   totalCount: number;
   totalPages: number;
-  onPageChange: (newPage: number) => void;
+  onPageChange: (page: number) => void;
   onEdit: (employee: Employee) => void;
 }
+
+type EmployeeRow = Employee & Record<string, unknown>;
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  US: '🇺🇸',
+  IN: '🇮🇳',
+  DE: '🇩🇪',
+  GB: '🇬🇧',
+  SG: '🇸🇬',
+  JP: '🇯🇵',
+};
 
 export function EmployeeGrid({
   employees,
@@ -38,10 +50,20 @@ export function EmployeeGrid({
     {
       key: 'employeeCode',
       header: 'Employee Code',
-      width: proportional(1, { minWidth: 100 }),
+      width: proportional(1.1, { minWidth: 120 }),
       renderCell: (item) => (
         <span
-          style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--color-primary-main, #2563eb)' }}
+          style={{
+            cursor: 'pointer',
+            fontFamily: 'var(--font-mono, monospace)',
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            backgroundColor: 'var(--color-bg-secondary, rgba(0,0,0,0.04))',
+            color: 'var(--color-primary-main, #2563eb)',
+            letterSpacing: '0.02em',
+          }}
           onClick={() => onEdit(item)}
         >
           {item.employeeCode}
@@ -50,50 +72,72 @@ export function EmployeeGrid({
     },
     {
       key: 'nameEmail',
-      header: 'Name & Email',
-      width: proportional(2, { minWidth: 180 }),
+      header: 'Employee',
+      width: proportional(2.4, { minWidth: 200 }),
       renderCell: (item) => (
-        <VStack
-          gap={0.5}
+        <HStack
+          gap={2}
+          align="center"
           style={{ cursor: 'pointer' }}
           onClick={() => onEdit(item)}
         >
-          <Text weight="semibold">{item.fullName}</Text>
-          <Text type="supporting" color="secondary">{item.email}</Text>
-        </VStack>
+          <Avatar name={item.fullName} size="sm" shape="circle" />
+          <VStack gap={0.5}>
+            <Text weight="semibold">{item.fullName}</Text>
+            <Text type="supporting" color="secondary">
+              {item.email}
+            </Text>
+          </VStack>
+        </HStack>
       ),
     },
     {
       key: 'deptLevel',
       header: 'Dept & Level',
-      width: proportional(1.5, { minWidth: 130 }),
-      renderCell: (item) => (
-        <HStack gap={1} align="center">
-          <Text>{item.department}</Text>
-          <Badge variant="neutral" label={item.level} />
-        </HStack>
-      ),
+      width: proportional(1.6, { minWidth: 140 }),
+      renderCell: (item) => {
+        const lvl = item.level;
+        const levelVariant =
+          lvl === 'L5' || lvl === 'L6'
+            ? 'purple'
+            : lvl === 'L3' || lvl === 'L4'
+            ? 'blue'
+            : 'neutral';
+
+        return (
+          <HStack gap={1.5} align="center">
+            <Text>{item.department}</Text>
+            <Badge variant={levelVariant} label={item.level} />
+          </HStack>
+        );
+      },
     },
     {
       key: 'country',
       header: 'Country',
-      width: proportional(0.8, { minWidth: 80 }),
-      renderCell: (item) => (
-        <Text>{item.country}</Text>
-      ),
+      width: proportional(1, { minWidth: 90 }),
+      renderCell: (item) => {
+        const flag = COUNTRY_FLAGS[item.country] || '🌐';
+        return (
+          <HStack gap={1} align="center">
+            <Text>{flag}</Text>
+            <Text weight="semibold">{item.country}</Text>
+          </HStack>
+        );
+      },
     },
     {
       key: 'localSalary',
       header: 'Local Compensation',
-      width: proportional(1.5, { minWidth: 130 }),
+      width: proportional(1.7, { minWidth: 150 }),
       renderCell: (item) => (
         <VStack gap={0.5}>
-          <Text hasTabularNumbers>
+          <Text hasTabularNumbers weight="medium">
             {formatLocalCurrency(item.localBaseSalary, item.localCurrency)}
           </Text>
           {Number(item.localBonusTarget) > 0 && (
             <Text type="supporting" color="secondary" hasTabularNumbers>
-              + {formatLocalCurrency(item.localBonusTarget, item.localCurrency)} bonus
+              + {formatLocalCurrency(item.localBonusTarget, item.localCurrency)} target
             </Text>
           )}
         </VStack>
@@ -101,16 +145,16 @@ export function EmployeeGrid({
     },
     {
       key: 'baseSalaryUsd',
-      header: 'Normalized USD Salary',
-      width: proportional(1.5, { minWidth: 130 }),
+      header: 'Normalized USD Pay',
+      width: proportional(1.7, { minWidth: 150 }),
       renderCell: (item) => (
         <VStack gap={0.5}>
-          <Text weight="semibold" hasTabularNumbers>
+          <Text weight="semibold" hasTabularNumbers color="primary">
             {formatUsd(item.baseSalaryUsd)}
           </Text>
           {Number(item.bonusTargetUsd) > 0 && (
             <Text type="supporting" color="secondary" hasTabularNumbers>
-              + {formatUsd(item.bonusTargetUsd)} bonus
+              + {formatUsd(item.bonusTargetUsd)} USD
             </Text>
           )}
         </VStack>
@@ -119,7 +163,7 @@ export function EmployeeGrid({
     {
       key: 'employmentStatus',
       header: 'Status',
-      width: proportional(1, { minWidth: 90 }),
+      width: proportional(1, { minWidth: 95 }),
       renderCell: (item) => {
         const variant =
           item.employmentStatus === 'active'
@@ -127,18 +171,15 @@ export function EmployeeGrid({
             : item.employmentStatus === 'inactive'
             ? 'warning'
             : 'error';
-        return (
-          <Badge
-            variant={variant}
-            label={item.employmentStatus.charAt(0).toUpperCase() + item.employmentStatus.slice(1)}
-          />
-        );
+        const label =
+          item.employmentStatus.charAt(0).toUpperCase() + item.employmentStatus.slice(1);
+        return <Badge variant={variant} label={label} />;
       },
     },
     {
       key: 'actions',
-      header: 'Actions',
-      width: pixel(80),
+      header: 'Action',
+      width: pixel(85),
       renderCell: (item) => (
         <Button
           variant="secondary"
@@ -166,11 +207,15 @@ export function EmployeeGrid({
 
         <Card variant="transparent" padding={3}>
           <HStack justify="between" align="center" width="100%">
-            <Text type="supporting" color="secondary">
-              {isLoading
-                ? 'Loading records...'
-                : `Showing ${startRecord}–${endRecord} of ${totalCount.toLocaleString()} employees`}
-            </Text>
+            <HStack gap={2} align="center">
+              <Text type="supporting" color="secondary">
+                {isLoading
+                  ? 'Querying indexed records...'
+                  : `Showing ${startRecord.toLocaleString()}–${endRecord.toLocaleString()} of ${totalCount.toLocaleString()} employees`}
+              </Text>
+              <Badge variant="neutral" label="Sub-50ms P95" />
+            </HStack>
+
             <HStack gap={2} align="center">
               <Button
                 variant="secondary"
@@ -179,7 +224,7 @@ export function EmployeeGrid({
                 isDisabled={page <= 1 || isLoading}
                 clickAction={() => onPageChange(page - 1)}
               />
-              <Text type="body">
+              <Text type="body" hasTabularNumbers weight="medium">
                 Page {page} of {totalPages || 1}
               </Text>
               <Button

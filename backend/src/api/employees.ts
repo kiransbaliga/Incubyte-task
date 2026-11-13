@@ -143,6 +143,59 @@ export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * GET /api/employees/analytics
+   * Aggregated distributions across departments, countries, and levels
+   */
+  fastify.get('/analytics', async (_request, reply) => {
+    const [departments, countries, levels] = await Promise.all([
+      db
+        .select({
+          department: employees.department,
+          headcount: sql<number>`count(*)`.mapWith(Number),
+          totalPayroll: sql<number>`round(coalesce(sum(${employees.baseSalaryUsd}::numeric), 0), 2)`.mapWith(Number),
+          avgSalary: sql<number>`round(coalesce(avg(${employees.baseSalaryUsd}::numeric), 0), 2)`.mapWith(Number),
+          medianSalary: sql<number>`round(coalesce(percentile_cont(0.5) within group (order by ${employees.baseSalaryUsd}::numeric), 0)::numeric, 2)`.mapWith(Number),
+        })
+        .from(employees)
+        .where(eq(employees.employmentStatus, 'active'))
+        .groupBy(employees.department)
+        .orderBy(sql`coalesce(sum(${employees.baseSalaryUsd}::numeric), 0) DESC`),
+      db
+        .select({
+          country: employees.country,
+          headcount: sql<number>`count(*)`.mapWith(Number),
+          totalPayroll: sql<number>`round(coalesce(sum(${employees.baseSalaryUsd}::numeric), 0), 2)`.mapWith(Number),
+          avgSalary: sql<number>`round(coalesce(avg(${employees.baseSalaryUsd}::numeric), 0), 2)`.mapWith(Number),
+          medianSalary: sql<number>`round(coalesce(percentile_cont(0.5) within group (order by ${employees.baseSalaryUsd}::numeric), 0)::numeric, 2)`.mapWith(Number),
+        })
+        .from(employees)
+        .where(eq(employees.employmentStatus, 'active'))
+        .groupBy(employees.country)
+        .orderBy(sql`count(*) DESC`),
+      db
+        .select({
+          level: employees.level,
+          headcount: sql<number>`count(*)`.mapWith(Number),
+          avgSalary: sql<number>`round(coalesce(avg(${employees.baseSalaryUsd}::numeric), 0), 2)`.mapWith(Number),
+          medianSalary: sql<number>`round(coalesce(percentile_cont(0.5) within group (order by ${employees.baseSalaryUsd}::numeric), 0)::numeric, 2)`.mapWith(Number),
+        })
+        .from(employees)
+        .where(eq(employees.employmentStatus, 'active'))
+        .groupBy(employees.level)
+        .orderBy(employees.level),
+    ]);
+
+    return reply.send({
+      success: true,
+      data: {
+        departments,
+        countries,
+        levels,
+      },
+    });
+  });
+
+  /**
    * GET /api/employees/:id
    * Fetch single employee by UUID
    */

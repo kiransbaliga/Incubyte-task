@@ -51,3 +51,32 @@ export interface FxRateItem {
   rateToUsd: string;
   effectiveDate: string;
 }
+
+export interface DepartmentStat {
+  department: string;
+  headcount: number;
+  totalPayroll: number;
+  avgSalary: number;
+  medianSalary: number;
+}
+
+export interface CountryStat {
+  country: string;
+  headcount: number;
+  totalPayroll: number;
+  avgSalary: number;
+  medianSalary: number;
+}
+
+export interface LevelStat {
+  level: string;
+  headcount: number;
+  avgSalary: number;
+  medianSalary: number;
+}
+
+export interface AnalyticsResponse {
+  departments: DepartmentStat[];
+  countries: CountryStat[];
+  levels: LevelStat[];
+}
