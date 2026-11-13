@@ -1,0 +1,59 @@
+{
+    email kiran@baliga.dev
+    auto_https disable_redirects
+}
+
+:80 {
+    encode gzip zstd
+
+    # Backend API routes and health check
+    @api_routes {
+        path /api/* /health
+    }
+    handle @api_routes {
+        reverse_proxy backend:3001 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Frontend Next.js application
+    handle {
+        reverse_proxy frontend:3000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+}
+
+https://track.baliga.dev {
+    tls internal
+    encode gzip zstd
+
+    # Backend API routes and health check
+    @api_routes {
+        path /api/* /health
+    }
+    handle @api_routes {
+        reverse_proxy backend:3001 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    # Frontend Next.js application
+    handle {
+        reverse_proxy frontend:3000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto https
+        }
+    }
+}

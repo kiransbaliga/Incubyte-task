@@ -1,6 +1,8 @@
 import type { Employee, EmployeeFilters, StatsResponse, AIQueryResponse, FxRateItem, AnalyticsResponse } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL !== undefined
+  ? process.env.NEXT_PUBLIC_API_URL
+  : (typeof window !== 'undefined' ? '' : 'http://localhost:3001');
 
 export async function getEmployees(filters: EmployeeFilters): Promise<{
   data: Employee[];

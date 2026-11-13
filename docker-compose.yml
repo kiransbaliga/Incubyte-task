@@ -1,58 +1,135 @@
 services:
+  # ==========================================
+  # Reverse Proxy & SSL Gateway (Caddy)
+  # ==========================================
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: acme-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3 QUIC
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    networks:
+      - acme_net
+    deploy:
+      resources:
+        limits:
+          memory: 60M
+
+  # ==========================================
+  # Database (PostgreSQL 16 Alpine)
+  # ==========================================
   postgres:
     image: postgres:16-alpine
     container_name: acme-postgres
     restart: unless-stopped
-    ports:
-      - "5432:5432"
     environment:
-      POSTGRES_DB: acme_compensation
-      POSTGRES_USER: acme_admin
-      POSTGRES_PASSWORD: acme_secret
+      POSTGRES_DB: ${POSTGRES_DB:-acme_compensation}
+      POSTGRES_USER: ${POSTGRES_USER:-acme_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-acme_secret}
+    command: >
+      postgres
+      -c shared_buffers=32MB
+      -c work_mem=4MB
+      -c maintenance_work_mem=16MB
+      -c max_connections=30
     volumes:
       - acme_pgdata:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U acme_admin -d acme_compensation"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-acme_admin} -d ${POSTGRES_DB:-acme_compensation}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - acme_net
+    deploy:
+      resources:
+        limits:
+          memory: 200M
 
+  # ==========================================
+  # Backend API (Fastify + Drizzle ORM)
+  # ==========================================
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: acme-backend
     restart: unless-stopped
-    ports:
-      - "3001:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
       HOST: 0.0.0.0
-      DATABASE_URL: postgresql://acme_admin:acme_secret@postgres:5432/acme_compensation
-      READONLY_DATABASE_URL: postgresql://acme_readonly:readonly_secret@postgres:5432/acme_compensation
+      DATABASE_URL: postgresql://${POSTGRES_USER:-acme_admin}:${POSTGRES_PASSWORD:-acme_secret}@postgres:5432/${POSTGRES_DB:-acme_compensation}
+      READONLY_DATABASE_URL: postgresql://acme_readonly:readonly_secret@postgres:5432/${POSTGRES_DB:-acme_compensation}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       LLM_PROVIDER: ${LLM_PROVIDER:-groq}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3001/health || exit 1"]
+      interval: 10s
+      timeout: 4s
+      retries: 4
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - acme_net
+    deploy:
+      resources:
+        limits:
+          memory: 200M
 
+  # ==========================================
+  # Frontend UI (Next.js 15 Standalone)
+  # ==========================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ""
     container_name: acme-frontend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_API_URL: ""
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 10s
+      timeout: 4s
+      retries: 4
+      start_period: 10s
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    networks:
+      - acme_net
+    deploy:
+      resources:
+        limits:
+          memory: 250M
 
 volumes:
   acme_pgdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  acme_net:
+    name: acme_compensation_net

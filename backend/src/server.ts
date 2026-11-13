@@ -4,6 +4,8 @@ import cors from '@fastify/cors';
 import { employeeRoutes } from './api/employees.js';
 import { fxRatesRoutes } from './api/fx-rates.js';
 import { aiRoutes } from './api/ai.js';
+import { runMigrations } from './db/migrate.js';
+import { seedDatabase } from './db/seed.js';
 
 /**
  * Builds and configures the Fastify server instance
@@ -67,6 +69,14 @@ export async function startServer() {
   const host = process.env.HOST || '0.0.0.0';
 
   try {
+    // Ensure migrations and initial data are present
+    try {
+      await runMigrations();
+      await seedDatabase(10000, false);
+    } catch (dbInitErr) {
+      console.warn('⚠️ Database initialization check notice:', dbInitErr);
+    }
+
     const server = await buildServer();
     await server.listen({ port, host });
     console.log(`🚀 ACME Compensation Hub API running at http://${host}:${port}`);
@@ -78,6 +88,13 @@ export async function startServer() {
 }
 
 // Auto-run if executed directly
-if (process.argv[1] && process.argv[1].endsWith('server.ts')) {
+const isDirectRun = Boolean(
+  process.argv[1] && (
+    process.argv[1].endsWith('server.ts') ||
+    process.argv[1].endsWith('server.js')
+  )
+);
+
+if (isDirectRun) {
   startServer();
 }
