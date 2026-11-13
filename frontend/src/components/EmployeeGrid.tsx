@@ -40,7 +40,12 @@ export function EmployeeGrid({
       header: 'Employee Code',
       width: proportional(1, { minWidth: 100 }),
       renderCell: (item) => (
-        <Text weight="semibold">{item.employeeCode}</Text>
+        <span
+          style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--color-primary-main, #2563eb)' }}
+          onClick={() => onEdit(item)}
+        >
+          {item.employeeCode}
+        </span>
       ),
     },
     {
@@ -48,7 +53,11 @@ export function EmployeeGrid({
       header: 'Name & Email',
       width: proportional(2, { minWidth: 180 }),
       renderCell: (item) => (
-        <VStack gap={0.5}>
+        <VStack
+          gap={0.5}
+          style={{ cursor: 'pointer' }}
+          onClick={() => onEdit(item)}
+        >
           <Text weight="semibold">{item.fullName}</Text>
           <Text type="supporting" color="secondary">{item.email}</Text>
         </VStack>
@@ -132,10 +141,10 @@ export function EmployeeGrid({
       width: pixel(80),
       renderCell: (item) => (
         <Button
-          variant="ghost"
+          variant="secondary"
           size="sm"
           label="Edit"
-          onClick={() => onEdit(item)}
+          clickAction={() => onEdit(item)}
         />
       ),
     },
@@ -168,7 +177,7 @@ export function EmployeeGrid({
                 size="sm"
                 label="Previous"
                 isDisabled={page <= 1 || isLoading}
-                onClick={() => onPageChange(page - 1)}
+                clickAction={() => onPageChange(page - 1)}
               />
               <Text type="body">
                 Page {page} of {totalPages || 1}
@@ -178,7 +187,7 @@ export function EmployeeGrid({
                 size="sm"
                 label="Next"
                 isDisabled={page >= totalPages || isLoading}
-                onClick={() => onPageChange(page + 1)}
+                clickAction={() => onPageChange(page + 1)}
               />
             </HStack>
           </HStack>

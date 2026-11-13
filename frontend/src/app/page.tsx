@@ -96,84 +96,86 @@ export default function HomePage() {
   };
 
   return (
-    <Layout
-      height="auto"
-      header={
-        <TopNav
-          label="ACME Compensation Navigation"
-          heading={
-            <TopNavHeading
-              heading="ACME Compensation Hub"
-              subheading="Global Compensation & Workforce Intelligence Platform"
-            />
-          }
-          endContent={
-            <HStack gap={2} align="center">
-              <Button
-                variant="secondary"
-                label="Ask ACME Pay"
-                onClick={() => setIsAiDrawerOpen(true)}
+    <>
+      <Layout
+        height="auto"
+        header={
+          <TopNav
+            label="ACME Compensation Navigation"
+            heading={
+              <TopNavHeading
+                heading="ACME Compensation Hub"
+                subheading="Global Compensation & Workforce Intelligence Platform"
               />
-              <Button
-                variant="primary"
-                label="+ Add Employee"
-                onClick={handleAddEmployee}
+            }
+            endContent={
+              <HStack gap={2} align="center">
+                <Button
+                  variant="secondary"
+                  label="Ask ACME Pay"
+                  clickAction={() => setIsAiDrawerOpen(true)}
+                />
+                <Button
+                  variant="primary"
+                  label="+ Add Employee"
+                  clickAction={handleAddEmployee}
+                />
+              </HStack>
+            }
+          />
+        }
+        content={
+          <LayoutContent padding={4} isScrollable={false}>
+            <VStack gap={4} width="100%">
+              <KpiStrip
+                stats={statsQuery.data}
+                isLoading={statsQuery.isLoading}
               />
-            </HStack>
-          }
-        />
-      }
-      content={
-        <LayoutContent padding={4} isScrollable={false}>
-          <VStack gap={4} width="100%">
-            <KpiStrip
-              stats={statsQuery.data}
-              isLoading={statsQuery.isLoading}
-            />
 
-            <FilterBar
-              search={search}
-              onSearchChange={(val) => {
-                setSearch(val);
-                setPage(1);
-              }}
-              department={department}
-              onDepartmentChange={(val) => {
-                setDepartment(val);
-                setPage(1);
-              }}
-              country={country}
-              onCountryChange={(val) => {
-                setCountry(val);
-                setPage(1);
-              }}
-              level={level}
-              onLevelChange={(val) => {
-                setLevel(val);
-                setPage(1);
-              }}
-              status={status}
-              onStatusChange={(val) => {
-                setStatus(val);
-                setPage(1);
-              }}
-              onReset={handleResetFilters}
-            />
+              <FilterBar
+                search={search}
+                onSearchChange={(val) => {
+                  setSearch(val);
+                  setPage(1);
+                }}
+                department={department}
+                onDepartmentChange={(val) => {
+                  setDepartment(val);
+                  setPage(1);
+                }}
+                country={country}
+                onCountryChange={(val) => {
+                  setCountry(val);
+                  setPage(1);
+                }}
+                level={level}
+                onLevelChange={(val) => {
+                  setLevel(val);
+                  setPage(1);
+                }}
+                status={status}
+                onStatusChange={(val) => {
+                  setStatus(val);
+                  setPage(1);
+                }}
+                onReset={handleResetFilters}
+              />
 
-            <EmployeeGrid
-              employees={employeesQuery.data?.data || []}
-              isLoading={employeesQuery.isLoading}
-              page={page}
-              pageSize={pageSize}
-              totalCount={employeesQuery.data?.pagination?.totalCount || 0}
-              totalPages={employeesQuery.data?.pagination?.totalPages || 1}
-              onPageChange={setPage}
-              onEdit={handleEditEmployee}
-            />
-          </VStack>
-        </LayoutContent>
-      }
-    >
+              <EmployeeGrid
+                employees={employeesQuery.data?.data || []}
+                isLoading={employeesQuery.isLoading}
+                page={page}
+                pageSize={pageSize}
+                totalCount={employeesQuery.data?.pagination?.totalCount || 0}
+                totalPages={employeesQuery.data?.pagination?.totalPages || 1}
+                onPageChange={setPage}
+                onEdit={handleEditEmployee}
+              />
+            </VStack>
+          </LayoutContent>
+        }
+      />
+
       <EmployeeDrawer
         isOpen={isEmployeeDrawerOpen}
         onOpenChange={setIsEmployeeDrawerOpen}
@@ -186,6 +188,6 @@ export default function HomePage() {
         isOpen={isAiDrawerOpen}
         onOpenChange={setIsAiDrawerOpen}
       />
-    </Layout>
+    </>
   );
 }

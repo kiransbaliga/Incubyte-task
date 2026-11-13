@@ -112,7 +112,7 @@ export function FilterBar({
         <Button
           variant="secondary"
           label="Reset Filters"
-          onClick={onReset}
+          clickAction={onReset}
         />
       </HStack>
     </Card>

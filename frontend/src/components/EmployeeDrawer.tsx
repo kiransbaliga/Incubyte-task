@@ -353,13 +353,13 @@ export function EmployeeDrawer({
               <Button
                 variant="secondary"
                 label="Cancel"
-                onClick={() => onOpenChange(false)}
+                clickAction={() => onOpenChange(false)}
               />
               <Button
                 variant="primary"
                 label={isSaving ? 'Saving...' : 'Save Changes'}
                 isDisabled={isSaving}
-                onClick={handleSubmit}
+                clickAction={handleSubmit}
               />
             </HStack>
           </LayoutFooter>

@@ -131,7 +131,7 @@ export function AskAcmePay({ isOpen, onOpenChange }: AskAcmePayProps) {
                         size="sm"
                         label={prompt}
                         isDisabled={isLoading}
-                        onClick={() => handleSend(prompt)}
+                        clickAction={() => handleSend(prompt)}
                       />
                     ))}
                   </HStack>
@@ -214,7 +214,7 @@ export function AskAcmePay({ isOpen, onOpenChange }: AskAcmePayProps) {
                                     ? 'Hide Generated SQL'
                                     : 'View Generated SQL (Audit)'
                                 }
-                                onClick={() => toggleSql(msg.id)}
+                                clickAction={() => toggleSql(msg.id)}
                               />
                             </HStack>
 
