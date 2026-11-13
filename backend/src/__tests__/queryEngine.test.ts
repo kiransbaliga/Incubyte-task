@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { generateQueryPlan } from '../ai/llmProvider.js';
+import {
+  generateQueryPlan,
+  getLLMProvider,
+  GroqProviderStrategy,
+  OpenAIProviderStrategy,
+  FallbackProviderStrategy,
+} from '../ai/llmProvider.js';
 import { executeAIQuery } from '../ai/queryEngine.js';
 import { SqlValidationError } from '../ai/types.js';
 
@@ -13,6 +19,67 @@ describe('AI Query Engine & LLM Provider Unit Tests', () => {
 
   afterEach(() => {
     process.env = originalEnv;
+  });
+
+  describe('LLM Provider Strategy Pattern', () => {
+    it('resolves GroqProviderStrategy when provider is "groq" or default', () => {
+      delete process.env.LLM_PROVIDER;
+      const defaultProvider = getLLMProvider();
+      expect(defaultProvider).toBeInstanceOf(GroqProviderStrategy);
+      expect(defaultProvider.name).toBe('groq');
+
+      const explicitGroq = getLLMProvider('groq');
+      expect(explicitGroq).toBeInstanceOf(GroqProviderStrategy);
+    });
+
+    it('resolves OpenAIProviderStrategy when provider is "openai"', () => {
+      const openAiProvider = getLLMProvider('openai');
+      expect(openAiProvider).toBeInstanceOf(OpenAIProviderStrategy);
+      expect(openAiProvider.name).toBe('openai');
+    });
+
+    it('resolves FallbackProviderStrategy when provider is "fallback" or "offline"', () => {
+      const fallbackProvider = getLLMProvider('fallback');
+      expect(fallbackProvider).toBeInstanceOf(FallbackProviderStrategy);
+      expect(fallbackProvider.name).toBe('fallback');
+      expect(fallbackProvider.isAvailable()).toBe(true);
+    });
+
+    it('switches strategy seamlessly via LLM_PROVIDER environment variable', () => {
+      process.env.LLM_PROVIDER = 'openai';
+      const provider = getLLMProvider();
+      expect(provider).toBeInstanceOf(OpenAIProviderStrategy);
+      expect(provider.name).toBe('openai');
+    });
+
+    it('OpenAIProviderStrategy correctly calls API and parses plan', async () => {
+      const openAi = new OpenAIProviderStrategy();
+      process.env.OPENAI_API_KEY = 'sk-test-mock-key';
+
+      // Mock global fetch for OpenAI API
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  sql: 'SELECT department, AVG(base_salary_usd) FROM employees GROUP BY department LIMIT 100',
+                  explanation: 'Department average base salary comparison.',
+                  visualizationType: 'comparison',
+                }),
+              },
+            },
+          ],
+        }),
+      });
+      global.fetch = mockFetch;
+
+      const plan = await openAi.generatePlan('Average salary by department');
+      expect(mockFetch).toHaveBeenCalled();
+      expect(plan.sql).toContain('AVG(base_salary_usd)');
+      expect(plan.visualizationType).toBe('comparison');
+    });
   });
 
   describe('generateQueryPlan Offline Fallback', () => {
