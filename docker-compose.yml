@@ -24,7 +24,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 60M
+          memory: 80M
 
   # ==========================================
   # Database (PostgreSQL 16 Alpine)
