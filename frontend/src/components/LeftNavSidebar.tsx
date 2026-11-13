@@ -10,7 +10,7 @@ import {
   Compass,
   ChevronDown,
   Building2,
-  Lock,
+  Database,
 } from 'lucide-react';
 
 export type ActiveNavPage = 'dashboard' | 'chat' | 'analytics' | 'fx';
@@ -99,18 +99,6 @@ export function LeftNavSidebar({
                 >
                   Active Personnel (99.4%)
                 </div>
-                <div
-                  className={`nav-subitem ${activeSubFilter === 'departments' ? 'is-active' : ''}`}
-                  onClick={() => onSelectSubFilter && onSelectSubFilter('departments')}
-                >
-                  Department Spend
-                </div>
-                <div
-                  className={`nav-subitem ${activeSubFilter === 'countries' ? 'is-active' : ''}`}
-                  onClick={() => onSelectSubFilter && onSelectSubFilter('countries')}
-                >
-                  Regional Benchmarks
-                </div>
               </div>
             )}
           </div>
@@ -168,50 +156,23 @@ export function LeftNavSidebar({
         </nav>
       </div>
 
-      {/* Bottom Section: Locked Theme & Read-Only Status */}
+      {/* Bottom Section: Database Connection Status */}
       <div
         style={{
           borderTop: '1px solid var(--color-border-subtle, #e2e8f0)',
-          paddingTop: '16px',
+          paddingTop: '14px',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <Lock size={12} color="#64748b" />
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary, #64748b)', letterSpacing: '0.5px' }}>
-              THEME LOCKED
-            </span>
-          </div>
-          <Badge variant="neutral" label="PostgreSQL 16" />
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 10px',
-            borderRadius: '8px',
-            backgroundColor: 'var(--color-surface-subtle, #f8fafc)',
-            border: '1px solid var(--color-border-subtle, #e2e8f0)',
-          }}
-        >
-          <span
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: '#475569',
-              display: 'inline-block',
-            }}
-          />
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary, #0f172a)' }}>
-            Neutral (Quiet Grays) • Light
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Database size={13} color="#64748b" />
+          <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-secondary, #64748b)' }}>
+            PostgreSQL 16
           </span>
         </div>
+        <Badge variant="neutral" label="Connected" />
       </div>
     </aside>
   );

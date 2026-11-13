@@ -117,10 +117,6 @@ export default function HomePage() {
       setCountry('all');
     } else if (sub === 'active') {
       setStatus('active');
-    } else if (sub === 'departments') {
-      setActivePage('analytics');
-    } else if (sub === 'countries') {
-      setActivePage('analytics');
     }
   };
 

@@ -37,7 +37,7 @@ const TOUR_STEPS: TourStep[] = [
     title: 'Compensation Dashboard & Tree Navigation',
     badge: 'Step 1 of 6',
     description:
-      'This is your primary workspace. The tree view lets you quickly jump between All 10,000 Employees, Active Personnel, and breakdown reports.',
+      'This is your primary workspace. The tree view lets you quickly toggle between All 10,000 Employees and Active Personnel (99.4%).',
     actionHint: 'Click to expand or collapse sub-filters anytime.',
     placement: 'right',
   },
