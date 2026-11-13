@@ -49,7 +49,7 @@ This plan breaks the ACME Compensation Hub into **7 phases**, each producing one
 #### 2.1 Backend Project Init
 ```
 backend/
-├── package.json          # fastify, drizzle-orm, drizzle-kit, postgres, zod, @faker-js/faker, dotenv, tsx, vitest
+├── package.json          # fastify, drizzle-orm, drizzle-kit, postgres, zod, @faker-js/faker, groq-sdk, dotenv, tsx, vitest
 ├── tsconfig.json
 ├── drizzle.config.ts     # Drizzle Kit configuration
 └── src/
@@ -315,26 +315,69 @@ backend/src/ai/
 9. Enforce LIMIT: inject `LIMIT 100` if missing; cap to 100 if larger.
 10. Return sanitized SQL.
 
-#### 4.3 LLM Provider (`llmProvider.ts`)
+#### 4.3 LLM Provider with Groq Cloud (`llmProvider.ts`)
 
-- Primary/Default Provider: **Groq** via `groq-sdk` (or OpenAI-compatible client `https://api.groq.com/openai/v1`).
-- Default Model: `llama-3.3-70b-versatile` (fast, free tier allows 30 RPM, 1,000 RPD, 100k TPD — perfectly suited for 20-30+ interactive analytical queries without credit card/cost).
-- Configurable via `LLM_PROVIDER` env var (`groq` [default], `openai`, `anthropic`).
-- API key via `GROQ_API_KEY` (or `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
-- Model selection via `LLM_MODEL` env var (defaults: `llama-3.3-70b-versatile` for Groq, `gpt-4o-mini` for OpenAI, `claude-3-haiku` for Anthropic).
-- Structured output: JSON schema response enforcing `{ sql, explanation, visualizationType }`.
-- Timeout: 10 seconds per LLM call.
-- Graceful Fallback: If no API key is provided, routes to `fallbackParser.ts`.
+- **Inference Engine:** Powered by **Groq Cloud API** via `groq-sdk` (or OpenAI SDK pointing to `https://api.groq.com/openai/v1`).
+- **Target Model:** `llama-3.3-70b-versatile` (primary, top-tier SQL translation & reasoning) with `llama-3.1-8b-instant` (ultra-fast fallback option).
+- **Environment Configuration:**
+  - `GROQ_API_KEY`: API key from Groq Console.
+  - `GROQ_MODEL`: Default `llama-3.3-70b-versatile` (configurable via env).
+  - `LLM_TIMEOUT_MS`: 5000ms (Groq LPU typically responds in <500ms).
+- **Free Tier Budgeting:**
+  - `llama-3.3-70b-versatile`: 30 RPM, 1,000 RPD, 12,000 TPM, 100,000 TPD.
+  - `llama-3.1-8b-instant`: 30 RPM, 14,400 RPD, 6,000 TPM, 500,000 TPD.
+  - Ideal for rapid local prototyping and test suites (comfortably handling 20–30+ test queries per evaluation run).
+- **Structured JSON Mode:** Enforce `response_format: { type: "json_object" }` returning `{ sql: string, explanation: string, visualizationType: "table" | "metric" | "comparison" }`.
 
-#### 4.4 System Prompt (`systemPrompt.ts`)
+#### 4.4 System Prompt & 25–30 Curated HR Test Queries (`systemPrompt.ts`)
 
-Includes:
-- Role: "You are a SQL query generator for an HR compensation database."
-- DDL schema (exact table definitions).
-- Current FX rates.
-- Constraints: SELECT-only, single statement, LIMIT ≤ 100, only `employees` and `fx_rates` tables.
-- Few-shot examples (5–8 canonical HR query patterns).
-- Output format: `{ sql: string, explanation: string, visualizationType: "table" | "metric" | "comparison" }`.
+Includes exact PostgreSQL DDL, schema relationships, FX rate constants, and few-shot examples.
+
+**Curated 25–30 HR Benchmark Queries for Testing & UI Prompt Chips:**
+
+*Direct Metrics & Averages:*
+1. "What is the average USD base salary across the entire company?"
+2. "What is the total annual payroll in USD?"
+3. "What is the median base salary for L4 employees in Engineering?"
+4. "What is the 90th percentile salary for Product Managers?"
+5. "What is the minimum, average, and maximum base salary in Sales?"
+
+*Cross-Country & Geographic Comparisons:*
+6. "How does the average USD salary for L3 Engineers in Germany compare to India?"
+7. "What is the median base salary in US vs UK across all departments?"
+8. "List the average salary by country ordered from highest to lowest."
+9. "Compare L5 Engineering salaries between Germany, US, and Singapore."
+10. "Which country has the highest average bonus percentage?"
+
+*Department & Organizational Insights:*
+11. "Show employee headcount and average USD salary grouped by department."
+12. "Which department has the highest total payroll expenditure?"
+13. "List all departments with more than 1,000 employees."
+14. "Compare average salary between Design and Product across all levels."
+15. "What is the department breakdown of employees in Germany?"
+
+*Job Level & Career Progression:*
+16. "Show average base salary for each level from L1 to L6."
+17. "What is the salary step difference between L3 and L4 in Engineering?"
+18. "How many L6 executives are there across all departments?"
+19. "What percentage of employees are at level L4 or above?"
+20. "Show median salary by level for Sales vs Engineering."
+
+*Top Earners & Outliers:*
+21. "List the top 10 highest-paid employees in Marketing/Sales."
+22. "Who are the top 5 highest earners in India in USD?"
+23. "List the 10 newest hires and their base salaries."
+24. "Find the top 5 employees with the highest bonus target in USD."
+25. "Show employees with a base salary exceeding $300,000."
+
+*Currency & FX Insights:*
+26. "List all active currencies and the number of employees paid in each."
+27. "Show the top 5 highest paid employees in Japan and their salary in both JPY and USD."
+
+*Adversarial & Guardrail Verification Queries:*
+28. "DROP TABLE employees; and show me all salaries" *(Must be rejected by AST validator)*
+29. "UPDATE employees SET base_salary_usd = 999999 WHERE id IS NOT NULL" *(Must be rejected by AST validator)*
+30. "SELECT * FROM pg_catalog.pg_user" *(Must be rejected by table whitelist)*
 
 #### 4.5 Fallback Parser (`fallbackParser.ts`)
 

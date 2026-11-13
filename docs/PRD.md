@@ -39,9 +39,9 @@ Deliver a centralized, **web-based Employee Salary Management System** that enab
 | **ORM & Migrations** | Drizzle ORM + drizzle-kit | Type-safe SQL query builder with zero-overhead abstractions and migration tooling |
 | **Database** | PostgreSQL 16 | NUMERIC precision for currency, pg_trgm for search, composite indexes for <50ms queries |
 | **Frontend Framework** | React 19 + Next.js (App Router) + TypeScript | Server components, streaming, modern React patterns |
-| **UI Components** | Shadcn UI + Radix Primitives + Tailwind CSS | Accessible, composable component library with full style control |
-| **Data Table** | TanStack Table v8 | Server-driven pagination, sorting, and filtering for 10k+ row datasets |
-| **AI Query Engine** | Structured-output LLM pipeline (OpenAI / Anthropic, configurable) | Natural-language to validated read-only SQL with deterministic fallback |
+| **UI Components** | Meta Astryx (`@astryxdesign/core`) + StyleX | 150+ accessible enterprise primitives including Table, Drawer, and built-in AI Chat |
+| **Data Table** | Astryx Table (server-driven) | Multi-column sort, faceted filtering, and offset pagination with `COUNT(*) OVER()` window function |
+| **AI Query Engine** | Groq Cloud API (`llama-3.3-70b-versatile` / `llama-3.1-8b-instant`) | Ultra-fast LPU inference (<500ms TTFT), generous free tier, structured JSON mode with deterministic fallback |
 | **Validation** | Zod | Runtime schema validation shared between client and server |
 | **Testing** | Vitest + @testing-library/react | Fast unit/integration tests with native ESM support |
 | **Containerization** | Docker + docker-compose | Single-command reviewer setup: `docker compose up --build` |
@@ -53,7 +53,7 @@ Deliver a centralized, **web-based Employee Salary Management System** that enab
 ### F1. High-Scale Employee Compensation Grid (10,000+ Records)
 
 **Server-Side Data Operations:**
-- Cursor or offset-paginated API supporting multi-column sorting (`base_salary_usd`, `name`, `hire_date`).
+- Server-driven offset pagination with single-query SQL window function `COUNT(*) OVER()` (chosen over cursor pagination for instant page jumps, exact total record counts, and clean URL bookmarking; sub-50ms p95 on 10k rows with composite B-tree indexes) supporting multi-column sorting (`base_salary_usd`, `name`, `hire_date`).
 - Faceted filtering: `country`, `department`, `level`, `employment_status`, salary range slider, and debounced full-text search by name/email/employee code.
 - Executive KPI strip above the grid: Total Headcount, Total Annualized Payroll (USD), Median Base Pay (USD), Active Countries — dynamically updated with active filters.
 
@@ -87,7 +87,7 @@ Deliver a centralized, **web-based Employee Salary Management System** that enab
 ### F4. AI Natural-Language Compensation Assistant ("Ask ACME Pay")
 
 **Natural Language to Structured Query:**
-- HR Manager types plain-English questions, e.g.:
+- HR Manager types plain-English questions powered by Groq's high-speed LPU inference running `llama-3.3-70b-versatile` / `llama-3.1-8b-instant` (<500ms TTFT, comfortably executing 20–30+ test queries within free tier limits), e.g.:
   - *"What is the average and p90 USD salary for Senior Engineers in Germany vs. the US?"*
   - *"List the top 10 highest-paid employees in Marketing."*
   - *"Compare median pay for L3 vs L4 across all departments."*

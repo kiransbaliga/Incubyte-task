@@ -51,19 +51,20 @@ User Question
 
 ### Layer 1: LLM Prompt Engineering & Provider Selection (Soft Constraint)
 
+**Inference Provider: Groq Cloud API**
+- **Hardware & Speed:** Groq's custom LPU (Language Processing Unit) delivers near-instant inference (<500ms time-to-first-token), making natural language queries feel synchronous and responsive in the UI.
+- **Model Selection:**
+  - Default: `llama-3.3-70b-versatile` (exceptional SQL generation capability, structured reasoning, 30 RPM / 1,000 RPD on free tier).
+  - Alternative / Ultra-fast: `llama-3.1-8b-instant` (sub-200ms latency, 30 RPM / 14,400 RPD on free tier).
+- **Cost & Quota:** Free tier requires no credit card and comfortably supports 20–30+ test queries per session without quota friction.
+- **Client Implementation:** Uses official `groq-sdk` (or OpenAI SDK configured with `baseURL: 'https://api.groq.com/openai/v1'`) with JSON mode (`response_format: { type: "json_object" }`).
+
 The LLM receives:
 - **System prompt**: Strict instructions to generate only `SELECT` queries.
 - **DDL schema context**: Exact table definitions and column types so the LLM generates valid column references.
 - **FX rates context**: Current rate values so the LLM doesn't need to guess.
 - **Few-shot examples**: Canonical query patterns for common HR questions.
 - **Structured output format**: JSON schema `{ sql: string, explanation: string, visualizationType: "table" | "metric" | "comparison" }`.
-
-#### Recommended Provider: Groq API (`groq-sdk` / OpenAI-Compatible)
-To facilitate smooth local development, reviewer evaluations, and zero-cost ad-hoc querying, the default AI inference backend is configured for **Groq Cloud**:
-- **Default Model:** `llama-3.3-70b-versatile` (or `llama-3.1-8b-instant` for ultra-low latency).
-- **Free Tier Advantages:** 30 Requests/Min (RPM) and 1,000–14,400 Requests/Day (RPD) with generous token limits, easily accommodating 20–30+ interactive analytical queries per session without billing or credit card requirements.
-- **SDK Compatibility:** Groq provides official Node.js SDK (`groq-sdk`) and is drop-in OpenAI client compatible with `baseURL: 'https://api.groq.com/openai/v1'`.
-- **Configurability:** Environment variables `GROQ_API_KEY` (primary), with fallback support for `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` via an adapter interface. If no key is set, the system gracefully falls back to the deterministic local keyword parser.
 
 **This layer is necessary but insufficient.** LLMs can be prompt-injected, hallucinate, or generate unexpected SQL. It reduces the frequency of unsafe outputs but cannot guarantee safety.
 

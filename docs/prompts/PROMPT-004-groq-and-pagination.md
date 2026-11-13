@@ -1,55 +1,52 @@
-# Prompt 004 — Architecture Refinement: Offset vs Cursor Pagination & Groq LLM Selection
+# Prompt 004 — Groq LLM Inference & Pagination Strategy Decisions
 
 **Date:** 2026-11-13  
-**Phase:** Planning & Architecture Review  
-**Trigger:** User feedback during Phase 1 plan review
+**Phase:** Planning & Architecture Refinement  
+**Trigger:** User questions on cursor vs. offset pagination and decision to adopt Groq Cloud API for AI inference.
 
 ---
 
-## 1. Pagination Rationale: Offset + `COUNT(*) OVER()` vs. Cursor-Based
+## 1. Pagination Decision: Offset + `COUNT(*) OVER()` vs. Cursor-Based
 
-### Context & Question
-The reviewer asked: *"pagination cursor based is better right? can you explain why we use offset + count over instead of cursor."*
+### Discussion
 
-### Architectural Analysis
+**User Inquiry:** *"Can you explain why we use offset + count over instead of cursor? Pagination cursor-based is better right?"*
 
-While cursor-based (keyset) pagination is the industry standard for high-throughput, infinite-scroll, or real-time event feeds (e.g. Twitter, Slack, payment logs), an **HR Compensation Management Hub** presents distinct operational requirements:
+**Analysis:**
+While cursor-based pagination is ideal for endless feeds and multi-million row datasets (O(1) seek regardless of depth), it introduces severe UX limitations for an internal enterprise HR admin portal:
 
-1. **HR User Experience (Random Access & Page Jumping):**
-   - HR operators frequently need to jump to specific pages ("Page 42"), view total calculated pages, or navigate to the end of a cohort.
-   - Cursor-based pagination only supports bidirectional traversal (`next`/`prev` cursor) and cannot jump to arbitrary pages without walking all intermediate rows.
-2. **Total Record Count Visibility:**
-   - HR reporting requires knowing the exact cohort size: *"Showing 2,051–2,100 of 10,000 employees"*.
-   - Cursor pagination inherently does not provide total counts without running an expensive separate `COUNT(*)` query.
-   - With PostgreSQL window function `count(*) over()`, the database derives the total matching row count in the **same execution plan pass** as the LIMIT/OFFSET slice, eliminating a second database round-trip.
-3. **Dynamic Multi-Column Sort Switching:**
-   - In the ACME grid, the user can sort by `base_salary_usd`, `full_name`, `hire_date`, or `department`.
-   - In cursor pagination, each sort permutation requires constructing composite tuple conditions (e.g., `(hire_date, id) < ($cursor_date, $cursor_id)`), which becomes brittle with nulls and complex data types.
-   - In offset pagination, dynamic `ORDER BY <column> <dir> LIMIT 50 OFFSET <offset>` is cleanly composed by the query builder.
-4. **Performance at 10,000 Rows:**
-   - Offset pagination latency degrades at millions of rows because PostgreSQL must traverse earlier index pages before discarding them.
-   - At **10,000 rows** with our B-tree composite indexes, `OFFSET 9,950 LIMIT 50` executes in **< 5ms**. There is zero perceptible performance penalty at this scale.
+1. **Random Page Navigation:** Cursor pagination cannot support jumping to "Page 15" or "Page 40". A user must sequentially fetch every prior page.
+2. **Total Record Count in Single Round-Trip:** Cursor queries cannot compute total matching rows without an additional `COUNT(*)` query. `COUNT(*) OVER()` window function provides both paginated rows and total matching count in a single database query.
+3. **URL Bookmarkability:** Offset queries yield intuitive query parameters (`?page=5&pageSize=50`), which are easily shared and bookmarked by HR managers.
+4. **Performance Reality at 10,000 Rows:** With composite B-tree indexes, PostgreSQL skips indexed rows with near-zero overhead. An `OFFSET 9950 LIMIT 50` query on an indexed table executes in <5ms.
 
-### Conclusion
-Offset pagination with `COUNT(*) OVER()` is strictly superior for this use case because it fulfills HR UX requirements with sub-10ms latency.
+**Conclusion:** Offset + `COUNT(*) OVER()` is the optimal architectural choice for the HR Compensation Grid. Keyset/cursor pagination remains an option for high-throughput public API streams if the dataset expands past 500k rows.
 
 ---
 
-## 2. AI Inference Engine: Groq Free Tier Integration
+## 2. AI Inference Engine: Groq Cloud API
 
-### Context & Goal
-User request: *"Also lets use Groq api keys for AI inference as it provides a good free tier api keys. Lets focus a simple but good free model with good limit like maybe 20-30 good queries we can ask"*
+### Motivation
 
-### Provider & Model Selection
+- **High Speed / Low Latency:** Groq's custom LPU (Language Processing Unit) hardware provides sub-500ms time-to-first-token (TTFT) and token generation rates of 250–750 tokens/sec.
+- **Generous Free Tier:** Does not require a credit card and provides generous rate quotas:
+  - `llama-3.3-70b-versatile`: 30 RPM, 1,000 RPD, 12,000 TPM.
+  - `llama-3.1-8b-instant`: 30 RPM, 14,400 RPD, 6,000 TPM.
+- **Structured JSON Mode:** Native support for `response_format: { type: "json_object" }` ensuring strict schema adherence for generated SQL query plans.
+- **Evaluation Budget:** A 20–30 query test suite consumes <3% of the daily free tier allocation.
 
-- **Provider:** Groq Cloud (`groq-sdk` or OpenAI-compatible endpoint `https://api.groq.com/openai/v1`).
-- **Target Model:** `llama-3.3-70b-versatile`
-  - High reasoning capability for generating precise, syntactically correct SQL across joins, grouping, and percentiles.
-  - Free Tier Rate Limits: 30 RPM, 1,000 RPD, 12,000 TPM, 100,000 TPD.
-  - Zero cost, requires no credit card, perfect for 20–30+ interactive review queries.
-- **Alternative Ultra-Fast Model:** `llama-3.1-8b-instant` (14,400 RPD, 500,000 TPD, sub-200ms latency).
-- **Environment Configuration:**
-  - `GROQ_API_KEY`: API key.
-  - `LLM_PROVIDER`: `groq` (default), `openai`, `anthropic`.
-  - `LLM_MODEL`: `llama-3.3-70b-versatile`.
-- **Zero-Key Fallback:** If `GROQ_API_KEY` is not present, the system defaults to the deterministic local keyword parser without crashing.
+### Implementation Blueprint
+
+- **Backend Package:** `groq-sdk`
+- **Environment Variables:** `GROQ_API_KEY`, `GROQ_MODEL=llama-3.3-70b-versatile`
+- **Fallback Strategy:** Pattern-based SQL generator if `GROQ_API_KEY` is omitted, ensuring tests and demo runs remain functional offline.
+
+---
+
+## 3. Documents Updated
+
+- `docs/PRD.md`: Updated tech stack table, F1 pagination rationale, and F4 Groq inference.
+- `docs/ARCHITECTURE.md`: Updated sequence diagrams, Groq LPU pipeline, and free tier quota management.
+- `docs/adr/ADR-002-dual-currency-and-db-indexing.md`: Added detailed comparison of Offset vs. Keyset pagination.
+- `docs/adr/ADR-003-safe-nl-to-sql-pipeline.md`: Added Groq provider specifications and model limits.
+- `docs/IMPLEMENTATION_PLAN.md`: Integrated `groq-sdk`, rate limit budgeting, and 30 curated test queries.

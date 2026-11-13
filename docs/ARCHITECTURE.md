@@ -53,12 +53,12 @@ sequenceDiagram
     participant API as Fastify API
     participant DB as PostgreSQL
 
-    HR->>UI: Apply filters (country, dept, level)
-    UI->>API: GET /api/employees?country=DE&dept=Engineering&page=1&sort=base_salary_usd:desc
-    API->>DB: SELECT with composite index hit<br/>+ COUNT(*) OVER() for total
-    DB-->>API: 50 rows + total count (< 50ms)
-    API-->>UI: { data, pagination, stats }
-    UI-->>HR: Rendered grid with dual-currency display
+    HR->>UI: Apply filters (country, dept, level) or click Page 5
+    UI->>API: GET /api/employees?country=DE&dept=Engineering&page=5&sort=base_salary_usd:desc
+    API->>DB: SELECT with composite index hit<br/>+ COUNT(*) OVER() in a single query
+    DB-->>API: 50 rows + total count in single round-trip (< 50ms)
+    API-->>UI: { data, pagination: { page, totalCount, totalPages }, stats }
+    UI-->>HR: Rendered grid with dual-currency display & exact pagination
 ```
 
 ### 2.2 Employee Record — Write Path
@@ -240,21 +240,33 @@ flowchart TD
 
 ## 6. AI Query Engine Architecture
 
-### 6.1 Pipeline
+### 6.1 Pipeline with Groq LPU Inference
 
 ```
-User Question
+User Question (HR Natural Language)
     ↓
-[Prompt Engineering] — System prompt with DDL schema, FX rates context, examples
+[Prompt Engineering] — System prompt with DDL schema, FX rates context, few-shot examples
     ↓
-[LLM Call] — Structured JSON output: { sql, explanation, visualizationType }
+[Groq Cloud API Call] — LPU high-speed inference (<500ms TTFT)
+    - Default Model: llama-3.3-70b-versatile (JSON mode)
+    - Fallback Model: llama-3.1-8b-instant
+    - Structured output: { sql, explanation, visualizationType }
     ↓
-[SQL AST Validator] — Parse → enforce SELECT-only, whitelist tables, inject LIMIT
+[SQL AST Validator] — Parse → enforce SELECT-only, whitelist tables, inject LIMIT 100
     ↓
 [Read-Only DB Execution] — acme_readonly role, 3s statement_timeout
     ↓
 [Response Formatting] — { answerSummary, columns, rows, generatedSql, executionTimeMs }
 ```
+
+### 6.2 Groq Free Tier & Rate Budgeting
+
+- **Throughput:** Groq LPU delivers 250–750 tokens/sec, reducing response latency from typical 3–5 seconds to <800ms end-to-end.
+- **Quota Management:**
+  - `llama-3.3-70b-versatile`: 30 Requests/Min (RPM) and 1,000 Requests/Day (RPD).
+  - `llama-3.1-8b-instant`: 30 Requests/Min (RPM) and 14,400 Requests/Day (RPD).
+  - The application easily accommodates continuous evaluation sessions (20–30+ test queries) with zero cost.
+- **Deterministic Offline Fallback:** If `GROQ_API_KEY` is not provided, the engine automatically routes to a pattern-based SQL generator so all core compensation inquiries work out of the box.
 
 ### 6.2 SQL Validator Rules
 

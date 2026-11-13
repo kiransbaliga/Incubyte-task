@@ -76,19 +76,6 @@ Based on the HR Manager's primary access patterns:
 
 **Index column ordering rationale:** Equality-filtered columns (department, level, country, status) come first; range/sort columns (salary DESC, hire_date DESC) come last. This maximizes index prefix utilization.
 
-### Pagination Strategy: Offset with Window Function `COUNT(*) OVER()` vs. Keyset Cursor
-
-We evaluated Cursor-Based vs. Offset Pagination:
-
-| Criterion | Cursor-Based Pagination | Offset + `COUNT(*) OVER()` | Architectural Decision |
-|---|---|---|---|
-| **HR User Experience** | Only sequential "Next / Prev" navigation; impossible to jump directly to page 25 or inspect total pages | Direct random-access ("Jump to page 40", "Go to last page") + exact total count badge ("Showing 2,001–2,050 of 10,000") | **Offset required** for HR table workflows |
-| **Multi-Column Sorting** | Complex composite cursor logic required for each dynamically sorted column (e.g. `(base_salary_usd, id) < (cursor_salary, cursor_id)`) | Clean `ORDER BY <column> LIMIT 50 OFFSET <offset>` handled dynamically by query builder | **Offset is significantly simpler and more robust** |
-| **Performance at 10,000 Rows** | O(1) index seek (~1ms) | O(log N) B-Tree traversal + skip. At 10,000 rows with composite indexes, `OFFSET 9950` takes **< 5ms** in PostgreSQL | **No performance penalty at 10k scale** |
-| **Total Count Overhead** | Requires separate `COUNT(*)` query (2 database round-trips or full scan) | Window function `COUNT(*) OVER()` calculates total count in a single database pass alongside paginated rows | **Window function eliminates 2nd query** |
-
-**Conclusion:** For a 10,000-employee administrative grid with dynamic multi-column sorting and random-access page jumping, Offset + `COUNT(*) OVER()` provides optimal UX with zero perceptible latency penalty (<10ms p95). If the dataset grows to millions of rows in a future iteration, a hybrid keyset pagination model can be introduced.
-
 ### Drizzle Schema (Preview)
 
 ```typescript
@@ -124,6 +111,20 @@ export const employees = pgTable('employees', {
 ]);
 ```
 
+### Pagination Strategy: Offset with COUNT(*) OVER() vs. Cursor
+
+For the 10,000-row compensation grid, we evaluated both pagination patterns:
+
+| Criterion | Keyset / Cursor Pagination | Offset + COUNT(*) OVER() (Selected) |
+|-----------|----------------------------|-------------------------------------|
+| **Random Page Access** | ❌ Impossible: cannot jump directly to "Page 15" without walking prior pages | ✅ Direct jump to any page (`?page=15`) |
+| **Total Count / KPI** | ❌ Requires a separate `SELECT COUNT(*)` query | ✅ In-flight total via window function `COUNT(*) OVER()` in a single round-trip |
+| **UX Alignment** | Good for infinite scroll / social feeds | Perfect for HR tables (displays "Showing 51–100 of 10,000") |
+| **Sort Flexibility** | Complex composite cursors required when user switches multi-column sort | Simple dynamic `ORDER BY col OFFSET n LIMIT m` |
+| **Performance at 10k Scale** | O(1) across any depth | O(N) skip, but at 10k rows with B-tree index, `OFFSET 9950` executes in <5ms |
+
+**Decision:** Use **Offset pagination with `COUNT(*) OVER()`** for the HR grid. It delivers essential admin UI capabilities (direct page jumps, accurate total record counts, clean URL synchronization) with sub-50ms query times on 10,000 rows. If the dataset scales to 500,000+ rows in the future, cursor pagination can be introduced for high-throughput public API endpoints.
+
 ## Alternatives Considered
 
 | Alternative | Why Rejected |
@@ -133,6 +134,7 @@ export const employees = pgTable('employees', {
 | Runtime FX JOIN on every query | Prevents index usage on sorted salary columns; adds latency |
 | PostgreSQL generated columns | Drizzle ORM doesn't fully support `GENERATED ALWAYS AS` with cross-table references (FX join needed) |
 | Partial indexes per country | Too many indexes to maintain; composite index covers all patterns |
+| Cursor-only pagination | Fails HR requirements: cannot jump to arbitrary pages or get total count without double queries |
 
 ## Consequences
 
