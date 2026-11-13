@@ -61,6 +61,78 @@ function extractLimit(q: string, defaultLimit = 10): number {
 }
 
 /**
+ * Extracts employee codes like ACME-01964 or EMP-00104.
+ */
+function extractEmployeeCode(q: string): string | undefined {
+  const match = q.match(/\b(ACME-\d{4,5}|EMP-\d{4,5})\b/i);
+  return match ? match[1].toUpperCase() : undefined;
+}
+
+const STOP_WORDS = new Set([
+  'the', 'a', 'an', 'what', 'is', 'are', 'how', 'much', 'does', 'do', 'show', 'me', 'find',
+  'get', 'tell', 'lookup', 'who', 'all', 'each', 'every', 'our', 'top', 'bottom', 'highest',
+  'lowest', 'average', 'avg', 'mean', 'median', 'p50', 'p90', 'total', 'annual', 'base',
+  'salary', 'salaries', 'pay', 'compensation', 'bonus', 'department', 'country', 'level',
+  'active', 'inactive', 'terminated', 'employee', 'employees', 'in', 'by', 'for', 'of', 'to',
+  'engineering', 'product', 'design', 'sales', 'operations', 'people', 'marketing'
+]);
+
+/**
+ * Extracts individual person names from compensation inquiries
+ * (e.g. "salary of Magnus Davis", "how much does Magnus Davis make", "Magnus Davis salary").
+ */
+function extractPersonName(q: string): string | undefined {
+  if (/\b(average|avg|median|p50|p90|percentile|total payroll|headcount|by department|by country|by level|across departments|across countries)\b/i.test(q)) {
+    return undefined;
+  }
+  if (/\b(top|bottom|highest|lowest|most|least)\s+\d+\b/i.test(q)) {
+    return undefined;
+  }
+
+  // 1. "salary of Magnus Davis", "pay for Magnus Davis", "compensation of Magnus Davis"
+  const nameAfterKeyword = q.match(/\b(?:salary|pay|compensation)\s+(?:of|for)\s+([A-Za-z]+(?:\s+[A-Za-z'-]+)+)/i);
+  if (nameAfterKeyword) {
+    const candidate = nameAfterKeyword[1].trim().replace(/\?+$/, '').replace(/'s$/, '');
+    const words = candidate.split(/\s+/);
+    if (!words.some((w) => STOP_WORDS.has(w.toLowerCase()))) {
+      return candidate;
+    }
+  }
+
+  // 2. "how much does Magnus Davis make"
+  const howMuch = q.match(/\bhow much does\s+([A-Za-z]+(?:\s+[A-Za-z'-]+)+?)(?:\s+(?:make|earn|get|receive|get paid))?(?:\?|$)/i);
+  if (howMuch) {
+    const candidate = howMuch[1].trim().replace(/\?+$/, '').replace(/'s$/, '');
+    const words = candidate.split(/\s+/);
+    if (!words.some((w) => STOP_WORDS.has(w.toLowerCase()))) {
+      return candidate;
+    }
+  }
+
+  // 3. "Magnus Davis's salary" or "Magnus Davis salary"
+  const nameBeforeKeyword = q.match(/\b([A-Za-z]+(?:\s+[A-Za-z'-]+)+?)(?:'s)?\s+(?:salary|pay|compensation)\b/i);
+  if (nameBeforeKeyword) {
+    const candidate = nameBeforeKeyword[1].trim().replace(/'s$/, '');
+    const words = candidate.split(/\s+/);
+    if (!words.some((w) => STOP_WORDS.has(w.toLowerCase()))) {
+      return candidate;
+    }
+  }
+
+  // 4. "who is Magnus Davis", "employee Magnus Davis"
+  const directAction = q.match(/\b(?:who is|employee)\s+([A-Za-z]+(?:\s+[A-Za-z'-]+)+)\b/i);
+  if (directAction) {
+    const candidate = directAction[1].trim().replace(/\?+$/, '');
+    const words = candidate.split(/\s+/);
+    if (!words.some((w) => STOP_WORDS.has(w.toLowerCase()))) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * Deterministic fallback query parser for when GROQ_API_KEY is unset or API is unreachable.
  * Matches common HR compensation inquiry patterns.
  */
@@ -96,6 +168,26 @@ export function parseFallbackQuery(question: string): LLMGeneratedPlan {
     whereClauses.push(`level IN (${levels.map((l) => `'${l}'`).join(', ')})`);
   }
   const whereSql = whereClauses.join(' AND ');
+
+  // 0. INDIVIDUAL EMPLOYEE LOOKUP BY CODE OR NAME
+  const employeeCode = extractEmployeeCode(question);
+  if (employeeCode) {
+    return {
+      sql: `SELECT full_name, employee_code, department, level, country, base_salary_usd, local_currency, local_base_salary FROM employees WHERE employee_code = '${employeeCode}' LIMIT 1`,
+      explanation: `Retrieves compensation details for employee ${employeeCode}.`,
+      visualizationType: 'table',
+    };
+  }
+
+  const personName = extractPersonName(question);
+  if (personName) {
+    const sanitized = personName.replace(/'/g, "''").replace(/[%_\\]/g, '\\$&');
+    return {
+      sql: `SELECT full_name, employee_code, department, level, country, base_salary_usd, local_currency, local_base_salary FROM employees WHERE full_name ILIKE '%${sanitized}%' LIMIT 5`,
+      explanation: `Retrieves compensation details and salary for ${personName}.`,
+      visualizationType: 'table',
+    };
+  }
 
   // 1. TOP N / LOWEST N EARNERS
   if (

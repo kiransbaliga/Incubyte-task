@@ -54,36 +54,59 @@ export class GroqProviderStrategy implements LLMProviderStrategy {
       throw new Error('GROQ_API_KEY is not configured');
     }
 
-    const model = process.env.GROQ_MODEL?.trim() || process.env.LLM_MODEL?.trim() || 'llama-3.3-70b-versatile';
+    const configuredModel = process.env.GROQ_MODEL?.trim() || process.env.LLM_MODEL?.trim() || 'openai/gpt-oss-120b';
+    const modelsToTry = [
+      configuredModel,
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+    ].filter((m, idx, arr) => arr.indexOf(m) === idx);
+
     const timeoutMs = parseInt(process.env.GROQ_TIMEOUT_MS || process.env.LLM_TIMEOUT_MS || '6000', 10);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const groq = new Groq({ apiKey });
 
-    try {
-      const groq = new Groq({ apiKey });
+    let lastError: any = null;
 
-      const completion = await groq.chat.completions.create(
-        {
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: question },
-          ],
-          model,
-          temperature: 0.1,
-          response_format: { type: 'json_object' },
-        },
-        { signal: controller.signal }
-      );
+    for (const model of modelsToTry) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      const rawContent = completion.choices[0]?.message?.content;
-      if (!rawContent) {
-        throw new Error('Received empty response body from Groq inference');
+      try {
+        const completion = await groq.chat.completions.create(
+          {
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              { role: 'user', content: question },
+            ],
+            model,
+            temperature: 0.1,
+            response_format: { type: 'json_object' },
+          },
+          { signal: controller.signal }
+        );
+
+        const rawContent = completion.choices[0]?.message?.content;
+        if (!rawContent) {
+          throw new Error(`Received empty response body from Groq inference (${model})`);
+        }
+
+        return parseStructuredPlan(rawContent);
+      } catch (err: any) {
+        lastError = err;
+        // If error is model_not_found (404), try next model in the list
+        if (err?.status === 404 || err?.message?.includes('model_not_found') || err?.code === 'model_not_found') {
+          console.warn(`[AI Engine] Model ${model} not available on Groq, trying fallback model...`);
+          continue;
+        }
+        // For other fatal errors (e.g. invalid API key, rate limit, timeout), rethrow
+        throw err;
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      return parseStructuredPlan(rawContent);
-    } finally {
-      clearTimeout(timeoutId);
     }
+
+    throw lastError || new Error('All Groq models failed');
   }
 }
 

@@ -48,7 +48,14 @@ Corporate FX Planning Rates:
    - 90th percentile: ROUND(PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY base_salary_usd)::numeric, 2) AS p90_salary_usd
    - Average pay: ROUND(AVG(base_salary_usd), 2) AS avg_salary_usd
    - Round all monetary aggregate numbers to 2 decimal places using ROUND(..., 2).
-4. SAFETY RESTRICTIONS:
+5. INDIVIDUAL EMPLOYEE LOOKUPS:
+   - When a question asks about a specific person (by name, e.g. "salary of Magnus Davis", "how much does Jane Doe make" or by employee code, e.g. "ACME-01964"):
+   - Filter using case-insensitive match on full_name: 'full_name ILIKE \'%<name>%\'' or 'employee_code = \'<code\'>'.
+   - Select specific columns: full_name, employee_code, department, level, country, base_salary_usd, local_currency, local_base_salary.
+   - Set LIMIT to 5 (or LIMIT 1).
+   - Use "visualizationType": "table".
+   - NEVER return a sorted list of general employees or top earners when an individual person is requested.
+6. SAFETY RESTRICTIONS:
    - Generate ONLY read-only queries starting with SELECT or WITH.
    - NEVER generate INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, GRANT, or system commands.
    - Never reference system catalogs (pg_catalog, information_schema).
@@ -92,6 +99,14 @@ JSON Response:
   "sql": "SELECT ROUND(SUM(base_salary_usd), 2) AS total_payroll_usd, COUNT(*) AS active_headcount FROM employees WHERE employment_status = 'active' LIMIT 1",
   "explanation": "Computes the total annualized payroll in USD and total active headcount across all global entities.",
   "visualizationType": "metric"
+}
+
+Question: "What is the salary of Magnus Davis?"
+JSON Response:
+{
+  "sql": "SELECT full_name, employee_code, department, level, country, base_salary_usd, local_currency, local_base_salary FROM employees WHERE full_name ILIKE '%Magnus Davis%' LIMIT 5",
+  "explanation": "Retrieves the salary and compensation details for Magnus Davis.",
+  "visualizationType": "table"
 }
 
 Question: "Compare median salary across all departments."

@@ -94,6 +94,21 @@ describe('AI Query Engine & LLM Provider Unit Tests', () => {
       expect(plan.explanation).toBeDefined();
     });
 
+    it('correctly resolves individual employee salary query for named person in fallback parser', async () => {
+      delete process.env.GROQ_API_KEY;
+
+      const plan1 = await generateQueryPlan('salary of Magnus Davis');
+      expect(plan1.sql).toContain('full_name ILIKE \'%Magnus Davis%\'');
+      expect(plan1.sql).toContain('LIMIT 5');
+      expect(plan1.explanation).toContain('Magnus Davis');
+
+      const plan2 = await generateQueryPlan('What is the salary of Magnus Davis?');
+      expect(plan2.sql).toContain('full_name ILIKE \'%Magnus Davis%\'');
+
+      const plan3 = await generateQueryPlan('ACME-01964 salary');
+      expect(plan3.sql).toContain("employee_code = 'ACME-01964'");
+    });
+
     it('gracefully uses fallback parser when Groq SDK call fails', async () => {
       process.env.GROQ_API_KEY = 'invalid-dummy-key';
 
