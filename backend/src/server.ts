@@ -3,7 +3,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import { employeeRoutes } from './api/employees.js';
 import { fxRatesRoutes } from './api/fx-rates.js';
-// AI routes registered in Phase 4
+import { aiRoutes } from './api/ai.js';
 
 /**
  * Builds and configures the Fastify server instance
@@ -36,7 +36,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   // API Routes
   await server.register(employeeRoutes, { prefix: '/api/employees' });
   await server.register(fxRatesRoutes, { prefix: '/api/fx-rates' });
-  // await server.register(aiRoutes, { prefix: '/api/ai' });
+  await server.register(aiRoutes, { prefix: '/api/ai' });
 
   // Custom 404 handler
   server.setNotFoundHandler(async (request, reply) => {
