@@ -91,6 +91,7 @@ const TOUR_STEPS: TourStep[] = [
 export function OnboardingTour({ isOpen, onClose, onNavigatePage }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [windowDimensions, setWindowDimensions] = useState({ width: 1920, height: 1080 });
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const step = TOUR_STEPS[currentStep];
@@ -109,8 +110,16 @@ export function OnboardingTour({ isOpen, onClose, onNavigatePage }: OnboardingTo
   }, [isOpen, step]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setWindowDimensions({ width: window.innerWidth, height: window.innerHeight });
+    }
     updateTargetRect();
-    const handleResize = () => updateTargetRect();
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        setWindowDimensions({ width: window.innerWidth, height: window.innerHeight });
+      }
+      updateTargetRect();
+    };
     const handleScroll = () => updateTargetRect();
     window.addEventListener('resize', handleResize);
     window.addEventListener('scroll', handleScroll, true);
@@ -145,6 +154,34 @@ export function OnboardingTour({ isOpen, onClose, onNavigatePage }: OnboardingTo
       localStorage.setItem('acme_onboarding_completed', 'true');
     } catch {}
     onClose();
+  };
+
+  // Generate SVG path with true cutout hole: zero blur, zero dimming on focused element
+  const getCutoutPath = () => {
+    const w = windowDimensions.width;
+    const h = windowDimensions.height;
+    if (!targetRect) {
+      return `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z`;
+    }
+    const padding = 6;
+    const x = Math.max(0, targetRect.left - padding);
+    const y = Math.max(0, targetRect.top - padding);
+    const width = Math.min(w - x, targetRect.width + padding * 2);
+    const height = Math.min(h - y, targetRect.height + padding * 2);
+    const r = 10;
+
+    return (
+      `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z ` +
+      `M ${x + r} ${y} ` +
+      `H ${x + width - r} ` +
+      `A ${r} ${r} 0 0 1 ${x + width} ${y + r} ` +
+      `V ${y + height - r} ` +
+      `A ${r} ${r} 0 0 1 ${x + width - r} ${y + height} ` +
+      `H ${x + r} ` +
+      `A ${r} ${r} 0 0 1 ${x} ${y + height - r} ` +
+      `V ${y + r} ` +
+      `A ${r} ${r} 0 0 1 ${x + r} ${y} Z`
+    );
   };
 
   // Calculate popover style based on targetRect & placement
@@ -197,20 +234,27 @@ export function OnboardingTour({ isOpen, onClose, onNavigatePage }: OnboardingTo
 
   return (
     <>
-      {/* Dark backdrop cutout with pointer-events-none on spotlight */}
-      <div
+      {/* SVG True Cutout Overlay: Zero Blur & Zero Dimming on Focused Element */}
+      <svg
         style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.55)',
+          width: '100vw',
+          height: '100vh',
           zIndex: 9999,
-          backdropFilter: 'blur(2px)',
-          transition: 'all 0.2s ease',
+          pointerEvents: 'none',
         }}
-        onClick={onClose}
-      />
+      >
+        <path
+          d={getCutoutPath()}
+          fill="rgba(15, 23, 42, 0.6)"
+          fillRule="evenodd"
+          style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+          onClick={onClose}
+        />
+      </svg>
 
-      {/* Target Element Spotlight Highlight Ring */}
+      {/* Target Element Spotlight Highlight Ring (Crisp, High-Contrast & Unblurred) */}
       {targetRect && (
         <div
           style={{
@@ -219,12 +263,12 @@ export function OnboardingTour({ isOpen, onClose, onNavigatePage }: OnboardingTo
             left: `${targetRect.left - 6}px`,
             width: `${targetRect.width + 12}px`,
             height: `${targetRect.height + 12}px`,
-            borderRadius: '12px',
-            border: '2px solid #3b82f6',
-            boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.5), 0 0 20px 4px rgba(59, 130, 246, 0.6)',
+            borderRadius: '10px',
+            border: '2.5px solid #2563eb',
+            boxShadow: '0 0 20px 4px rgba(37, 99, 235, 0.55)',
             zIndex: 10000,
             pointerEvents: 'none',
-            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
           }}
         />
       )}
