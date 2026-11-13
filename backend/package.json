@@ -1,6 +1,7 @@
 {
   "name": "acme-comp-backend",
   "version": "1.0.0",
+  "type": "module",
   "description": "ACME Compensation Hub - Backend API with Fastify and Drizzle ORM",
   "main": "src/server.ts",
   "scripts": {
