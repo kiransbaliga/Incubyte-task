@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: acme-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: acme_compensation
+      POSTGRES_USER: acme_admin
+      POSTGRES_PASSWORD: acme_secret
+    volumes:
+      - acme_pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acme_admin -d acme_compensation"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  acme_pgdata:
