@@ -1,37 +1,42 @@
 # Architecture Document: ACME Compensation Hub
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Date:** 2026-11-13  
-> **Status:** Design Phase
+> **Status:** Production / Implemented
 
 ---
 
 ## 1. System Overview
 
-ACME Compensation Hub is a full-stack web application providing centralized compensation management for 10,000+ global employees. The system consists of three main layers: a PostgreSQL database with performance-optimized indexes, a Fastify API server with Drizzle ORM, and a Next.js frontend with Meta Astryx UI components.
+ACME Compensation Hub is a full-stack workforce intelligence web application providing centralized compensation management for 10,000+ global employees across 6 countries (US, DE, GB, IN, SG, JP). The system features an executive **Bento Grid Architecture**, a **Persistent AI Compensation Copilot** with safe AST-validated SQL generation, and the official **Meta Astryx Multi-Theme Ecosystem**.
 
 ```mermaid
 flowchart TD
-    subgraph Frontend["Frontend — Next.js + React 19 + Astryx"]
-        UI["Compensation Grid<br/>KPI Strip<br/>Edit Drawer"]
-        AI_Chat["Ask ACME Pay<br/>AI Chat Panel"]
+    subgraph Frontend["Frontend — Next.js 15 + React 19 + Meta Astryx"]
+        direction TB
+        Bento["Bento Grid Dashboard<br/>- Executive Pulse (10k Headcount, $980M Spend)<br/>- Live FX Converter (EUR, GBP, INR, SGD, JPY)<br/>- Click-to-Filter Dept & Regional Matrix"]
+        Grid["Workforce Compensation Grid<br/>- Avatars, Flags, Dual-Currency USD<br/>- Inline Edit Drawer with Live USD Preview"]
+        AI_Side["Persistent AI Copilot (Always Open)<br/>- Groq OSS-120B / OpenAI Strategy<br/>- Single-Employee Spotlight Card<br/>- AST SQL Audit Drawer"]
+        Theme["Theme Context & Provider<br/>- Stone, Neutral, Chocolate, Matcha<br/>- Dynamic Light/Dark Mode"]
+        Tour["Guided Onboarding Tour (5 Steps)"]
     end
 
     subgraph Backend["Backend — Fastify + TypeScript"]
-        API["REST API<br/>CRUD + Search + Aggregations"]
-        AI_Engine["AI Query Engine<br/>NL → Structured SQL"]
-        Validator["SQL AST Validator<br/>Safety & Trust Layer"]
+        API["REST API Endpoints<br/>- /api/employees (Search, Filter, CRUD)<br/>- /api/employees/stats (Summary KPIs)<br/>- /api/employees/analytics (Aggregations)<br/>- /api/fx-rates (Corporate Pegs)"]
+        AI_Engine["AI Query Engine<br/>- Strategy Pattern (Groq & OpenAI)<br/>- Fallback Deterministic Parser"]
+        Validator["SQL AST Validator<br/>- Read-Only SELECT Enforcement<br/>- DDL/DML & Mutation Blocker"]
     end
 
-    subgraph Database["PostgreSQL 16"]
-        DB_Main["Main Connection Pool<br/>(read-write)"]
-        DB_RO["Read-Only Pool<br/>(acme_readonly role)"]
-        Tables["employees | fx_rates"]
-        Indexes["B-tree Composites<br/>GIN Trigram"]
+    subgraph Database["PostgreSQL 16 Database"]
+        DB_Main["Main Connection Pool (Read-Write)"]
+        DB_RO["Read-Only Pool (acme_readonly role)<br/>Statement Timeout: 3000ms"]
+        Tables["employees (10k rows) | fx_rates (6 pegs)"]
+        Indexes["Composite B-Trees (dept, level, salary)<br/>GIN Trigram on (full_name, email)"]
     end
 
-    UI -->|"Paginated queries<br/>CRUD operations"| API
-    AI_Chat -->|"Natural language question"| AI_Engine
+    Bento -->|"Filters & State"| Grid
+    Grid -->|"Paginated queries & CRUD"| API
+    AI_Side -->|"Natural language queries"| AI_Engine
     AI_Engine -->|"Generated SQL"| Validator
     Validator -->|"Validated SELECT"| DB_RO
     API --> DB_Main
