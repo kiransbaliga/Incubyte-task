@@ -2,10 +2,6 @@
 
 import React from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
-import { Button } from '@astryxdesign/core/Button';
-import { Text } from '@astryxdesign/core/Text';
-import { Selector } from '@astryxdesign/core/Selector';
-import { useAppTheme, type AppThemeName } from '../app/providers';
 import {
   Home,
   Bot,
@@ -13,11 +9,8 @@ import {
   ArrowRightLeft,
   Compass,
   ChevronDown,
-  Layers,
-  Sparkles,
-  Database,
   Building2,
-  Users,
+  Lock,
 } from 'lucide-react';
 
 export type ActiveNavPage = 'dashboard' | 'chat' | 'analytics' | 'fx';
@@ -30,13 +23,6 @@ interface LeftNavSidebarProps {
   onSelectSubFilter?: (filter: string) => void;
 }
 
-const THEME_OPTIONS = [
-  { value: 'matcha', label: 'Matcha (Organic Forest)' },
-  { value: 'stone', label: 'Stone (Slate Crisp)' },
-  { value: 'neutral', label: 'Neutral (Quiet Grays)' },
-  { value: 'chocolate', label: 'Chocolate (Editorial)' },
-];
-
 export function LeftNavSidebar({
   activePage,
   onSelectPage,
@@ -44,25 +30,23 @@ export function LeftNavSidebar({
   activeSubFilter = 'all',
   onSelectSubFilter,
 }: LeftNavSidebarProps) {
-  const { themeName, setThemeName, themeMode, setThemeMode } = useAppTheme();
-
   return (
-    <aside className="left-sidebar">
+    <aside className="left-sidebar" data-tour="left-sidebar">
       {/* Top Section: Logo & Nav Links */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {/* Brand Header (Inspired by Reference Image "Acme Inc") */}
+        {/* Brand Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 6px' }}>
           <div
             style={{
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              backgroundColor: '#15803d', // Matcha Forest Green
+              backgroundColor: '#334155', // Slate/Neutral Gray
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
-              boxShadow: '0 2px 6px rgba(21, 128, 61, 0.25)',
+              boxShadow: '0 2px 6px rgba(51, 65, 85, 0.25)',
               fontWeight: 800,
             }}
           >
@@ -80,8 +64,8 @@ export function LeftNavSidebar({
 
         {/* Navigation Items Group */}
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {/* Item 1: Home / Dashboard (with accordion sub-items like reference) */}
-          <div>
+          {/* Item 1: Home / Dashboard */}
+          <div data-tour="nav-compensation">
             <div
               className={`nav-link ${activePage === 'dashboard' ? 'is-active' : ''}`}
               onClick={() => onSelectPage('dashboard')}
@@ -100,7 +84,7 @@ export function LeftNavSidebar({
               />
             </div>
 
-            {/* Tree Sub-items connected with vertical line */}
+            {/* Tree Sub-items */}
             {activePage === 'dashboard' && (
               <div className="nav-submenu">
                 <div
@@ -133,6 +117,7 @@ export function LeftNavSidebar({
 
           {/* Item 2: Dedicated Specialized AI Chat Page */}
           <div
+            data-tour="nav-ai-chat"
             className={`nav-link ${activePage === 'chat' ? 'is-active' : ''}`}
             onClick={() => onSelectPage('chat')}
           >
@@ -140,7 +125,7 @@ export function LeftNavSidebar({
               <Bot size={18} />
               <span>Ask ACME Pay</span>
             </div>
-            <Badge variant="green" label="AI Copilot" />
+            <Badge variant="blue" label="AI Copilot" />
           </div>
 
           {/* Item 3: Executive Analytics */}
@@ -170,6 +155,7 @@ export function LeftNavSidebar({
 
           {/* Item 5: Product Tour */}
           <div
+            data-tour="nav-guided-tour"
             className="nav-link"
             onClick={onOpenTour}
             style={{ marginTop: '4px' }}
@@ -182,35 +168,49 @@ export function LeftNavSidebar({
         </nav>
       </div>
 
-      {/* Bottom Section: Theme & System Status */}
+      {/* Bottom Section: Locked Theme & Read-Only Status */}
       <div
         style={{
           borderTop: '1px solid var(--color-border-subtle, #e2e8f0)',
           paddingTop: '16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '10px',
         }}
       >
-        {/* Theme Selector */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <Selector
-            label="Theme"
-            options={THEME_OPTIONS}
-            value={themeName}
-            onChange={(val) => setThemeName(val as AppThemeName)}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Lock size={12} color="#64748b" />
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary, #64748b)', letterSpacing: '0.5px' }}>
+              THEME LOCKED
+            </span>
+          </div>
+          <Badge variant="neutral" label="PostgreSQL 16" />
         </div>
 
-        {/* Mode Toggle & Status */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Button
-            variant="ghost"
-            size="sm"
-            label={themeMode === 'dark' ? '☀️ Light' : '🌙 Dark'}
-            clickAction={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 10px',
+            borderRadius: '8px',
+            backgroundColor: 'var(--color-surface-subtle, #f8fafc)',
+            border: '1px solid var(--color-border-subtle, #e2e8f0)',
+          }}
+        >
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#475569',
+              display: 'inline-block',
+            }}
           />
-          <Badge variant="neutral" label="PostgreSQL 16" />
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary, #0f172a)' }}>
+            Neutral (Quiet Grays) • Light
+          </span>
         </div>
       </div>
     </aside>

@@ -1,108 +1,124 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card } from '@astryxdesign/core/Card';
-import { VStack } from '@astryxdesign/core/VStack';
-import { HStack } from '@astryxdesign/core/HStack';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import {
-  LayoutDashboard,
-  Filter,
-  ArrowRightLeft,
-  Bot,
-  Palette,
-  CheckCircle2,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
   X,
+  CheckCircle2,
+  MousePointerClick,
   ChevronRight,
-  ChevronLeft,
 } from 'lucide-react';
 
 interface OnboardingTourProps {
   isOpen: boolean;
   onClose: () => void;
+  onNavigatePage?: (page: 'dashboard' | 'chat' | 'analytics' | 'fx') => void;
 }
 
 interface TourStep {
+  targetSelector: string;
   title: string;
   badge: string;
-  icon: React.ReactNode;
   description: string;
-  highlightItems: string[];
+  actionHint: string;
+  placement: 'bottom' | 'right' | 'top' | 'left';
+  highlightAction?: () => void;
 }
 
 const TOUR_STEPS: TourStep[] = [
   {
-    title: 'Executive Bento Intelligence Grid',
-    badge: 'Step 1 of 5',
-    icon: <LayoutDashboard size={28} className="text-blue-500" />,
+    targetSelector: '[data-tour="nav-compensation"]',
+    title: 'Compensation Dashboard & Tree Navigation',
+    badge: 'Step 1 of 6',
     description:
-      'Welcome to ACME Compensation Hub! The Bento-style dashboard delivers an executive-grade view of 10,000 global personnel, $980M+ annualized payroll spend, and median compensation benchmarks across 6 international entities.',
-    highlightItems: [
-      'Real-time headcount & active status breakdown (99.4% active)',
-      'Total annualized payroll spend with corporate FX normalization',
-      'P50 Global compensation benchmark at $85,225 USD',
-      'High-performance PostgreSQL 16 read-only replica queries',
-    ],
+      'This is your primary workspace. The tree view lets you quickly jump between All 10,000 Employees, Active Personnel, and breakdown reports.',
+    actionHint: 'Click to expand or collapse sub-filters anytime.',
+    placement: 'right',
   },
   {
-    title: 'Interactive Department & Regional Bento Filtering',
-    badge: 'Step 2 of 5',
-    icon: <Filter size={28} className="text-purple-500" />,
+    targetSelector: '[data-tour="nav-ai-chat"]',
+    title: 'Dedicated "Ask ACME Pay" AI Copilot',
+    badge: 'Step 2 of 6',
     description:
-      'Every card in the Bento grid is directly interactive. Click on any Department card or Country benchmark to instantly filter the live 10,000-record workforce grid below.',
-    highlightItems: [
-      'Click "Engineering" (35.6% spend) to filter exclusively to engineering roles',
-      'Click any country card (e.g. 🇩🇪 Germany or 🇮🇳 India) for country-specific views',
-      'Visual active borders show your current active bento filter',
-      'Combine with text search, seniority level, and status dropdowns',
-    ],
+      'Click here to access the specialized full-page AI Assistant powered by Groq (openai/gpt-oss-120b) with safe 3-layer read-only AST SQL guardrails.',
+    actionHint: 'Ask queries like "What is the salary of Magnus Davis?" for instant executive profiles.',
+    placement: 'right',
   },
   {
-    title: 'Real-Time FX Normalization & Quick Calculator',
-    badge: 'Step 3 of 5',
-    icon: <ArrowRightLeft size={28} className="text-emerald-500" />,
+    targetSelector: '[data-tour="period-tabs"]',
+    title: 'Workforce Status & Period Tabs',
+    badge: 'Step 3 of 6',
     description:
-      'ACME Pay operates across 6 currencies (USD, EUR, GBP, INR, SGD, JPY). The live FX Bento widget lets you convert any compensation amount to normalized USD in real time using corporate planning rates.',
-    highlightItems: [
-      'Interactive currency conversion calculator in the top-right Bento card',
-      'Live exchange rate ticker for EUR (€0.92), GBP (£0.79), INR (₹83.25), etc.',
-      'Dual-currency display across all table records: local pay + normalized USD',
-      'Sub-20ms instant calculation with no server roundtrip',
-    ],
+      'Quickly filter the entire 10,000-record dataset by employment status: All 10,000, Active (99.4%), Inactive, Terminated, or USD Normalized.',
+    actionHint: 'Click any tab to instantly slice the workforce without page reload.',
+    placement: 'bottom',
   },
   {
-    title: 'Persistent AI Compensation Copilot (Always Open)',
-    badge: 'Step 4 of 5',
-    icon: <Bot size={28} className="text-indigo-500" />,
+    targetSelector: '[data-tour="personnel-card"]',
+    title: 'Live Personnel Pulse & Multi-Segment Progress Bar',
+    badge: 'Step 4 of 6',
     description:
-      'The AI Compensation Copilot on the right panel is always docked and ready to answer complex workforce questions via natural language Text-to-SQL.',
-    highlightItems: [
-      'Powered by Groq Cloud inference (openai/gpt-oss-120b)',
-      '3-layer security guardrail with AST parser and read-only enforcement',
-      'Single-employee spotlight card: ask "Magnus Davis salary" for an executive profile',
-      'Audit drawer: inspect generated SQL and query execution latency (sub-20ms)',
-    ],
+      'Displays total headcount (10,000) with colored indicator squares for Active (99.4% green), Inactive (0.4% blue), and Terminated (0.2% red).',
+    actionHint: 'Hover over the segmented bar to inspect headcount distribution.',
+    placement: 'bottom',
   },
   {
-    title: 'Astryx Multi-Theme & Dark Mode Styling',
-    badge: 'Step 5 of 5',
-    icon: <Palette size={28} className="text-amber-500" />,
+    targetSelector: '[data-tour="filter-toolbar"]',
+    title: 'Workforce Filter Toolbar & Fuzzy Search',
+    badge: 'Step 5 of 6',
     description:
-      'Personalize the workspace using official Astryx themes and full Light/Dark mode with seamless token recalculation.',
-    highlightItems: [
-      'Stone (Default): Montserrat headings & Figtree body with slate accents',
-      'Neutral: Minimalist monochrome palette for high-contrast enterprise viewing',
-      'Chocolate: Warm caramel tones with editorial serif headings (Fraunces)',
-      'Matcha: Organic forest palette with DM Sans body typography',
-    ],
+      'Type any name, email, or employee code for sub-millisecond GIN trigram search, or filter by Department, Country, Level, and Status.',
+    actionHint: 'Filter by Engineering and Germany to view targeted compensation benchmarks.',
+    placement: 'top',
+  },
+  {
+    targetSelector: '[data-tour="add-employee-btn"]',
+    title: 'Add Employee & Live USD Preview Drawer',
+    badge: 'Step 6 of 6',
+    description:
+      'Open the slide-over drawer to add or edit personnel. As you type a local salary or change currency, the normalized USD amount recalculates in real-time.',
+    actionHint: 'Click to create a new record with strict Zod validation.',
+    placement: 'left',
   },
 ];
 
-export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
+export function OnboardingTour({ isOpen, onClose, onNavigatePage }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  const step = TOUR_STEPS[currentStep];
+
+  const updateTargetRect = useCallback(() => {
+    if (!isOpen || !step) return;
+
+    const el = document.querySelector(step.targetSelector);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      const rect = el.getBoundingClientRect();
+      setTargetRect(rect);
+    } else {
+      setTargetRect(null);
+    }
+  }, [isOpen, step]);
+
+  useEffect(() => {
+    updateTargetRect();
+    const handleResize = () => updateTargetRect();
+    const handleScroll = () => updateTargetRect();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [updateTargetRect, currentStep]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -121,7 +137,6 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
 
   if (!isOpen) return null;
 
-  const step = TOUR_STEPS[currentStep];
   const isFirst = currentStep === 0;
   const isLast = currentStep === TOUR_STEPS.length - 1;
 
@@ -132,119 +147,204 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
     onClose();
   };
 
+  // Calculate popover style based on targetRect & placement
+  const getPopoverStyle = (): React.CSSProperties => {
+    if (!targetRect) {
+      // Fallback center modal if element not found
+      return {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 10001,
+        width: '420px',
+      };
+    }
+
+    const popoverWidth = 400;
+    const padding = 16;
+    let top = 0;
+    let left = 0;
+
+    switch (step.placement) {
+      case 'right':
+        top = Math.max(padding, Math.min(window.innerHeight - 300, targetRect.top));
+        left = targetRect.right + padding;
+        break;
+      case 'bottom':
+        top = targetRect.bottom + padding;
+        left = Math.max(padding, Math.min(window.innerWidth - popoverWidth - padding, targetRect.left));
+        break;
+      case 'top':
+        top = Math.max(padding, targetRect.top - 260);
+        left = Math.max(padding, Math.min(window.innerWidth - popoverWidth - padding, targetRect.left));
+        break;
+      case 'left':
+        top = Math.max(padding, Math.min(window.innerHeight - 300, targetRect.top));
+        left = Math.max(padding, targetRect.left - popoverWidth - padding);
+        break;
+    }
+
+    return {
+      position: 'fixed',
+      top: `${top}px`,
+      left: `${left}px`,
+      zIndex: 10001,
+      width: `${popoverWidth}px`,
+      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+    };
+  };
+
   return (
-    <div className="tour-overlay-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+    <>
+      {/* Dark backdrop cutout with pointer-events-none on spotlight */}
       <div
-        className="tour-modal-card"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Card padding={5}>
-          <VStack gap={4}>
-            {/* Header with step badge and close button */}
-            <HStack justify="between" align="center">
-              <HStack gap={2} align="center">
-                <Badge variant="blue" label={step.badge} />
-                <Badge variant="neutral" label="Interactive Product Tour" />
-              </HStack>
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.55)',
+          zIndex: 9999,
+          backdropFilter: 'blur(2px)',
+          transition: 'all 0.2s ease',
+        }}
+        onClick={onClose}
+      />
+
+      {/* Target Element Spotlight Highlight Ring */}
+      {targetRect && (
+        <div
+          style={{
+            position: 'fixed',
+            top: `${targetRect.top - 6}px`,
+            left: `${targetRect.left - 6}px`,
+            width: `${targetRect.width + 12}px`,
+            height: `${targetRect.height + 12}px`,
+            borderRadius: '12px',
+            border: '2px solid #3b82f6',
+            boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.5), 0 0 20px 4px rgba(59, 130, 246, 0.6)',
+            zIndex: 10000,
+            pointerEvents: 'none',
+            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        />
+      )}
+
+      {/* Anchored Popover Callout Card */}
+      <div ref={popoverRef} style={getPopoverStyle()} onClick={(e) => e.stopPropagation()}>
+        <div
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Badge variant="blue" label={step.badge} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+                <MousePointerClick size={14} className="text-blue-500" />
+                <span>Element Focus</span>
+              </div>
+            </div>
+
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#94a3b8',
+                padding: '4px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              title="Close Tour"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Title & Description */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.3px' }}>
+              {step.title}
+            </div>
+            <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>
+              {step.description}
+            </div>
+          </div>
+
+          {/* Action Callout Box */}
+          <div
+            style={{
+              padding: '10px 12px',
+              borderRadius: '8px',
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <CheckCircle2 size={16} style={{ color: '#16a34a', flexShrink: 0 }} />
+            <span style={{ fontSize: '12px', color: '#15803d', fontWeight: 600 }}>
+              {step.actionHint}
+            </span>
+          </div>
+
+          {/* Step Progress Dots */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', margin: '4px 0' }}>
+            {TOUR_STEPS.map((_, idx) => (
+              <div
+                key={idx}
+                onClick={() => setCurrentStep(idx)}
+                style={{
+                  width: idx === currentStep ? '20px' : '6px',
+                  height: '6px',
+                  borderRadius: '3px',
+                  backgroundColor: idx === currentStep ? '#2563eb' : '#cbd5e1',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Footer Navigation Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              label="Previous"
+              isDisabled={isFirst}
+              clickAction={() => setCurrentStep((s) => s - 1)}
+            />
+
+            {isLast ? (
               <Button
-                variant="ghost"
+                variant="primary"
                 size="sm"
-                label="Skip"
+                label="Finish Tour"
                 clickAction={handleFinish}
               />
-            </HStack>
-
-            {/* Step Content */}
-            <HStack gap={3} align="start">
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '12px',
-                  backgroundColor: 'var(--color-surface-sunken, rgba(0,0,0,0.05))',
-                  border: '1px solid var(--color-border-subtle, rgba(0,0,0,0.1))',
-                  flexShrink: 0,
-                }}
-              >
-                {step.icon}
-              </div>
-              <VStack gap={1}>
-                <Heading level={3}>{step.title}</Heading>
-                <Text color="secondary" type="body">
-                  {step.description}
-                </Text>
-              </VStack>
-            </HStack>
-
-            {/* Feature Highlights */}
-            <Card variant="muted" padding={3}>
-              <VStack gap={2}>
-                <Text weight="semibold" type="supporting" color="secondary">
-                  KEY CAPABILITIES
-                </Text>
-                {step.highlightItems.map((item, idx) => (
-                  <HStack key={idx} gap={2} align="center">
-                    <CheckCircle2 size={16} className="text-emerald-500" style={{ flexShrink: 0 }} />
-                    <Text type="body">{item}</Text>
-                  </HStack>
-                ))}
-              </VStack>
-            </Card>
-
-            {/* Step Indicators */}
-            <HStack justify="center" gap={1.5} align="center">
-              {TOUR_STEPS.map((_, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setCurrentStep(idx)}
-                  style={{
-                    width: idx === currentStep ? '28px' : '8px',
-                    height: '8px',
-                    borderRadius: '4px',
-                    backgroundColor:
-                      idx === currentStep
-                        ? 'var(--color-primary-main, #3b82f6)'
-                        : 'var(--color-border-strong, #cbd5e1)',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                  }}
-                  title={`Go to step ${idx + 1}`}
-                />
-              ))}
-            </HStack>
-
-            {/* Navigation Footer */}
-            <HStack justify="between" align="center">
+            ) : (
               <Button
-                variant="secondary"
-                size="md"
-                label="Previous"
-                isDisabled={isFirst}
-                clickAction={() => setCurrentStep((s) => s - 1)}
+                variant="primary"
+                size="sm"
+                label="Next Target →"
+                clickAction={() => setCurrentStep((s) => s + 1)}
               />
-
-              {isLast ? (
-                <Button
-                  variant="primary"
-                  size="md"
-                  label="Get Started & Explore"
-                  clickAction={handleFinish}
-                />
-              ) : (
-                <Button
-                  variant="primary"
-                  size="md"
-                  label="Next Step"
-                  clickAction={() => setCurrentStep((s) => s + 1)}
-                />
-              )}
-            </HStack>
-          </VStack>
-        </Card>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

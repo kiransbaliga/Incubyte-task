@@ -83,18 +83,20 @@ export function CleanDashboardView({
           </div>
 
           <HStack gap={2} align="center">
-            <Button
-              variant="primary"
-              size="md"
-              label="+ Add Employee"
-              clickAction={onAddEmployee}
-            />
+            <div data-tour="add-employee-btn">
+              <Button
+                variant="primary"
+                size="md"
+                label="+ Add Employee"
+                clickAction={onAddEmployee}
+              />
+            </div>
           </HStack>
         </div>
 
         {/* Period / Filter Tabs Group (Exact Reference Image Style) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <div className="period-tab-group">
+          <div className="period-tab-group" data-tour="period-tabs">
             <div
               className={`period-tab-item ${status === 'all' ? 'is-active' : ''}`}
               onClick={() => onStatusChange('all')}
@@ -143,7 +145,7 @@ export function CleanDashboardView({
         }}
       >
         {/* Card 1: All Personnel Breakdown (Exact Reference Image Layout) */}
-        <div className="clean-stat-card">
+        <div className="clean-stat-card" data-tour="personnel-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-secondary, #64748b)' }}>
               All personnel
@@ -201,7 +203,7 @@ export function CleanDashboardView({
         </div>
 
         {/* Card 2: Annualized Spend & Allocation */}
-        <div className="clean-stat-card">
+        <div className="clean-stat-card" data-tour="spend-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-secondary, #64748b)' }}>
               Annualized payroll spend
@@ -282,30 +284,34 @@ export function CleanDashboardView({
 
       {/* Workforce Filter Toolbar & 10,000 Live Employee Grid */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
-        <FilterBar
-          search={search}
-          onSearchChange={onSearchChange}
-          department={department}
-          onDepartmentChange={onDepartmentChange}
-          country={country}
-          onCountryChange={onCountryChange}
-          level={level}
-          onLevelChange={onLevelChange}
-          status={status}
-          onStatusChange={onStatusChange}
-          onReset={onResetFilters}
-        />
+        <div data-tour="filter-toolbar">
+          <FilterBar
+            search={search}
+            onSearchChange={onSearchChange}
+            department={department}
+            onDepartmentChange={onDepartmentChange}
+            country={country}
+            onCountryChange={onCountryChange}
+            level={level}
+            onLevelChange={onLevelChange}
+            status={status}
+            onStatusChange={onStatusChange}
+            onReset={onResetFilters}
+          />
+        </div>
 
-        <EmployeeGrid
-          employees={employees}
-          isLoading={isLoadingEmployees}
-          page={page}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-          onEdit={onEditEmployee}
-        />
+        <div data-tour="employee-table">
+          <EmployeeGrid
+            employees={employees}
+            isLoading={isLoadingEmployees}
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            onEdit={onEditEmployee}
+          />
+        </div>
       </div>
     </div>
   );
