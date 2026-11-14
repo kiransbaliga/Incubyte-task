@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Building2,
   Database,
+  Search,
 } from 'lucide-react';
 
 export type ActiveNavPage = 'dashboard' | 'chat' | 'analytics' | 'fx';
@@ -19,6 +20,7 @@ interface LeftNavSidebarProps {
   activePage: ActiveNavPage;
   onSelectPage: (page: ActiveNavPage) => void;
   onOpenTour: () => void;
+  onOpenCommandPalette?: () => void;
   activeSubFilter?: string;
   onSelectSubFilter?: (filter: string) => void;
 }
@@ -27,6 +29,7 @@ export function LeftNavSidebar({
   activePage,
   onSelectPage,
   onOpenTour,
+  onOpenCommandPalette,
   activeSubFilter = 'all',
   onSelectSubFilter,
 }: LeftNavSidebarProps) {
@@ -62,6 +65,45 @@ export function LeftNavSidebar({
             </div>
           </div>
         </div>
+
+        {/* Quick Command Palette Button (Cmd+K) */}
+        {onOpenCommandPalette && (
+          <button
+            type="button"
+            onClick={onOpenCommandPalette}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '7px 10px',
+              borderRadius: '8px',
+              border: '1px solid var(--color-border-subtle, #e2e8f0)',
+              backgroundColor: 'var(--color-surface-subtle, #f8fafc)',
+              color: 'var(--color-text-secondary, #64748b)',
+              fontSize: '12px',
+              cursor: 'pointer',
+              width: '100%',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Search size={14} />
+              <span>Search...</span>
+            </span>
+            <kbd style={{
+              fontSize: '10px',
+              fontFamily: 'monospace',
+              fontWeight: 700,
+              padding: '1px 5px',
+              borderRadius: '4px',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
+            }}>
+              ⌘K
+            </kbd>
+          </button>
+        )}
 
         {/* Navigation Items Group */}
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

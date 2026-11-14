@@ -15,6 +15,22 @@ export interface AIQueryResponse {
   generatedSql: string;
   executionTimeMs: number;
   visualizationType: VisualizationType;
+  cached?: boolean;
+  planCost?: number;
+}
+
+export class QueryCostExceededError extends Error {
+  public readonly estimatedCost: number;
+  public readonly maxCostBudget: number;
+
+  constructor(estimatedCost: number, maxCostBudget: number) {
+    super(
+      `Query cost estimate (${estimatedCost.toFixed(1)}) exceeds the maximum allowed safety budget (${maxCostBudget} units). Potential unindexed scan or Cartesian join rejected before database execution.`
+    );
+    this.name = 'QueryCostExceededError';
+    this.estimatedCost = estimatedCost;
+    this.maxCostBudget = maxCostBudget;
+  }
 }
 
 export interface LLMGeneratedPlan {

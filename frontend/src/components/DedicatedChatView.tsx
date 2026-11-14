@@ -69,7 +69,11 @@ const COUNTRY_FLAGS: Record<string, string> = {
   JP: '🇯🇵',
 };
 
-export function DedicatedChatView() {
+interface DedicatedChatViewProps {
+  initialPrompt?: string;
+}
+
+export function DedicatedChatView({ initialPrompt }: DedicatedChatViewProps = {}) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -90,6 +94,12 @@ export function DedicatedChatView() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    if (initialPrompt && initialPrompt.trim()) {
+      handleSend(initialPrompt);
+    }
+  }, [initialPrompt]);
 
   const toggleSql = (msgId: string) => {
     setExpandedSql((prev) => ({
@@ -466,11 +476,38 @@ export function DedicatedChatView() {
                           gap: '6px',
                           padding: '4px 0',
                           fontWeight: 500,
+                          flexWrap: 'wrap',
                         }}
                       >
                         {expandedSql[msg.id] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         <span>{expandedSql[msg.id] ? 'Hide AST SQL Query' : 'Audit Generated SQL'}</span>
                         <span style={{ color: '#15803d', fontWeight: 600 }}>({msg.data.executionTimeMs}ms)</span>
+                        {msg.data.cached && (
+                          <span style={{
+                            background: '#f3e8ff',
+                            color: '#7e22ce',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            marginLeft: '4px',
+                          }}>
+                            ⚡ Cached LRU
+                          </span>
+                        )}
+                        {msg.data.planCost !== undefined && (
+                          <span style={{
+                            background: '#ecfdf5',
+                            color: '#047857',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            marginLeft: '4px',
+                          }}>
+                            🛡️ Plan Cost: {Number(msg.data.planCost).toFixed(1)} / 5,000 budget
+                          </span>
+                        )}
                       </button>
 
                       {expandedSql[msg.id] && (
@@ -480,13 +517,27 @@ export function DedicatedChatView() {
                             padding: '12px 14px',
                             borderRadius: '8px',
                             border: '1px solid var(--color-border-subtle, #e2e8f0)',
-                            fontFamily: 'var(--font-mono)',
+                            fontFamily: 'var(--font-mono, monospace)',
                             fontSize: '12px',
                             lineHeight: '1.5',
                             overflowX: 'auto',
                           }}
                         >
-                          <code>{msg.data.generatedSql}</code>
+                          <div style={{
+                            display: 'flex',
+                            gap: '12px',
+                            marginBottom: '8px',
+                            paddingBottom: '8px',
+                            borderBottom: '1px solid #e2e8f0',
+                            fontSize: '11px',
+                            color: '#64748b',
+                            flexWrap: 'wrap',
+                          }}>
+                            <span><strong>Engine:</strong> PostgreSQL 16 (Read-Only)</span>
+                            <span><strong>Planner Cost:</strong> {msg.data.planCost !== undefined ? Number(msg.data.planCost).toFixed(1) : 'Safe'} (&lt;5,000 budget)</span>
+                            <span><strong>Cache Status:</strong> {msg.data.cached ? 'HIT (In-Memory LRU)' : 'MISS (Executed & Cached)'}</span>
+                          </div>
+                          <code style={{ color: '#0f172a' }}>{msg.data.generatedSql}</code>
                         </div>
                       )}
                     </VStack>

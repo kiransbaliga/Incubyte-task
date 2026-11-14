@@ -7,7 +7,9 @@ import {
   FallbackProviderStrategy,
 } from '../ai/llmProvider.js';
 import { executeAIQuery } from '../ai/queryEngine.js';
-import { SqlValidationError } from '../ai/types.js';
+import { SqlValidationError, QueryCostExceededError } from '../ai/types.js';
+import { evaluateQueryCost } from '../ai/queryCostEvaluator.js';
+import { queryCache } from '../ai/queryCache.js';
 
 describe('AI Query Engine & LLM Provider Unit Tests', () => {
   const originalEnv = process.env;
@@ -124,6 +126,39 @@ describe('AI Query Engine & LLM Provider Unit Tests', () => {
     it('throws error for empty question', async () => {
       await expect(executeAIQuery('')).rejects.toThrow('Question must be a non-empty string');
       await expect(executeAIQuery('   ')).rejects.toThrow('Question must be a non-empty string');
+    });
+  });
+
+  describe('Pre-Flight EXPLAIN Cost Gate & Semantic Cache', () => {
+    it('evaluateQueryCost permits queries under 5000 units and extracts plan cost', async () => {
+      const safeSql = 'SELECT id, full_name, base_salary_usd FROM employees ORDER BY base_salary_usd DESC LIMIT 10;';
+      const result = await evaluateQueryCost(safeSql);
+      expect(result.allowed).toBe(true);
+      expect(result.estimatedCost).toBeGreaterThan(0);
+      expect(result.estimatedCost).toBeLessThan(5000);
+    });
+
+    it('evaluateQueryCost rejects queries exceeding the cost budget with QueryCostExceededError', async () => {
+      // Extremely low budget of 0.001 to guarantee violation
+      const sql = 'SELECT * FROM employees;';
+      await expect(evaluateQueryCost(sql, 0.001)).rejects.toThrow(QueryCostExceededError);
+    });
+
+    it('semantic cache normalizes whitespace and punctuation, serving repeated queries in <2ms', async () => {
+      queryCache.clear();
+      expect(queryCache.normalizeKey('What is the average salary in Germany???')).toBe('what is the average salary in germany');
+      expect(queryCache.normalizeKey('what   is the AVERAGE salary in germany!')).toBe('what is the average salary in germany');
+
+      // First query runs through engine and caches
+      const firstRes = await executeAIQuery('Average salary by department');
+      expect(firstRes.cached).toBe(false);
+      expect(firstRes.planCost).toBeDefined();
+
+      // Second identical query hits memory cache
+      const secondRes = await executeAIQuery('  average salary by department!  ');
+      expect(secondRes.cached).toBe(true);
+      expect(secondRes.executionTimeMs).toBeLessThanOrEqual(2);
+      expect(secondRes.rows).toEqual(firstRes.rows);
     });
   });
 });

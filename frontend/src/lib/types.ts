@@ -69,6 +69,8 @@ export interface AIQueryResponse {
   generatedSql: string;
   executionTimeMs: number;
   visualizationType: 'table' | 'metric' | 'comparison';
+  cached?: boolean;
+  planCost?: number;
 }
 
 export interface FxRateItem {

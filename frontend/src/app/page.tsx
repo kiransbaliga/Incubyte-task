@@ -9,6 +9,7 @@ import { AnalyticsView } from '../components/AnalyticsView';
 import { FxRatesView } from '../components/FxRatesView';
 import { EmployeeDrawer } from '../components/EmployeeDrawer';
 import { OnboardingTour } from '../components/OnboardingTour';
+import { ExecutiveCommandPalette } from '../components/ExecutiveCommandPalette';
 import {
   getEmployees,
   getStats,
@@ -32,6 +33,22 @@ export default function HomePage() {
 
   // Onboarding tour state
   const [isTourOpen, setIsTourOpen] = useState(false);
+
+  // Command Palette (Cmd+K) state
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [chatPrompt, setChatPrompt] = useState<string>('');
+
+  // Global Cmd+K keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Filters state
   const [search, setSearch] = useState('');
@@ -120,6 +137,19 @@ export default function HomePage() {
     }
   };
 
+  const handleTriggerAiQuery = (question: string) => {
+    setChatPrompt(question);
+    setActivePage('chat');
+  };
+
+  const handleSelectFilterPreset = (preset: { department?: string; country?: string; status?: string; salaryMin?: number }) => {
+    if (preset.department) setDepartment(preset.department);
+    if (preset.country) setCountry(preset.country);
+    if (preset.status) setStatus(preset.status);
+    setPage(1);
+    setActivePage('dashboard');
+  };
+
   const handleAddEmployee = () => {
     setSelectedEmployee(null);
     setIsEmployeeDrawerOpen(true);
@@ -151,6 +181,7 @@ export default function HomePage() {
           activePage={activePage}
           onSelectPage={setActivePage}
           onOpenTour={() => setIsTourOpen(true)}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           activeSubFilter={activeSubFilter}
           onSelectSubFilter={handleSubFilterSelect}
         />
@@ -203,7 +234,7 @@ export default function HomePage() {
           )}
 
           {/* VIEW 2: Dedicated Specialized AI Compensation Copilot Chat Page */}
-          {activePage === 'chat' && <DedicatedChatView />}
+          {activePage === 'chat' && <DedicatedChatView initialPrompt={chatPrompt} />}
 
           {/* VIEW 3: Executive Analytics & Org Distributions */}
           {activePage === 'analytics' && (
@@ -222,6 +253,15 @@ export default function HomePage() {
           )}
         </main>
       </div>
+
+      {/* Cmd+K Executive Command Palette */}
+      <ExecutiveCommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onNavigate={(p) => setActivePage(p as ActiveNavPage)}
+        onSelectFilterPreset={handleSelectFilterPreset}
+        onTriggerAiQuery={handleTriggerAiQuery}
+      />
 
       {/* Edit / Create Employee Slide-Over Drawer */}
       <EmployeeDrawer

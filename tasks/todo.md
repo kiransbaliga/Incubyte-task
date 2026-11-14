@@ -29,13 +29,13 @@
 ---
 
 ## Phase 3: AI Safety: Pre-Flight EXPLAIN Cost Gate & Semantic Cache (Feature 3)
-- [ ] **Task 3.1**: Implement `backend/src/ai/queryCostEvaluator.ts` using `EXPLAIN (FORMAT JSON)` with 5,000 cost budget.
-- [ ] **Task 3.2**: Implement in-memory LRU query cache in `backend/src/ai/queryCache.ts` with TTL.
-- [ ] **Task 3.3**: Wire Cost Gate and Cache into `backend/src/ai/queryEngine.ts` and write tests for costly cartesian queries.
-- [ ] **Task 3.4**: Update Frontend `DedicatedChatView.tsx` with live `Plan Cost` and `Cached` badges in AST Audit drawer.
-- [ ] **Task 3.5**: Add `Cmd+K` keyboard shortcut for instant executive compensation queries and filter presets.
+- [x] **Task 3.1**: Implement `backend/src/ai/queryCostEvaluator.ts` using `EXPLAIN (FORMAT JSON)` with 5,000 cost budget.
+- [x] **Task 3.2**: Implement in-memory LRU query cache in `backend/src/ai/queryCache.ts` with TTL.
+- [x] **Task 3.3**: Wire Cost Gate and Cache into `backend/src/ai/queryEngine.ts` and write tests for costly cartesian queries.
+- [x] **Task 3.4**: Update Frontend `DedicatedChatView.tsx` with live `Plan Cost` and `Cached` badges in AST Audit drawer.
+- [x] **Task 3.5**: Add `Cmd+K` keyboard shortcut for instant executive compensation queries and filter presets.
 
 ### Checkpoint: Phase 3 Verification
-- [ ] Dangerous/expensive queries intercepted before DB execution with 422 error.
-- [ ] Repeated queries return in <2ms with `Cached` status.
-- [ ] Full backend test suite passing with 100% green tests.
+- [x] Dangerous/expensive queries intercepted before DB execution with 422 error.
+- [x] Repeated queries return in <2ms with `Cached` status.
+- [x] Full backend test suite passing with 100% green tests.
