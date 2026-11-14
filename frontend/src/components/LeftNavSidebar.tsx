@@ -31,7 +31,8 @@ export function LeftNavSidebar({
   onSelectSubFilter,
 }: LeftNavSidebarProps) {
   return (
-    <aside className="left-sidebar" data-tour="left-sidebar">
+    <>
+      <aside className="left-sidebar" data-tour="left-sidebar">
       {/* Top Section: Logo & Nav Links */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {/* Brand Header */}
@@ -175,5 +176,105 @@ export function LeftNavSidebar({
         <Badge variant="neutral" label="Connected" />
       </div>
     </aside>
+
+    {/* Mobile Top App Bar (Visible on <= 768px) */}
+    <header className="mobile-top-bar">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '6px',
+            backgroundColor: '#334155',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+          }}
+        >
+          <Building2 size={16} />
+        </div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '-0.3px', lineHeight: 1.1 }}>
+            Acme Inc
+          </div>
+          <div style={{ fontSize: '10px', color: 'var(--color-text-secondary, #64748b)' }}>
+            Compensation Hub
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Badge variant="neutral" label="PostgreSQL 16" />
+        <button
+          onClick={onOpenTour}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--color-border-subtle, #e2e8f0)',
+            borderRadius: '8px',
+            padding: '5px 9px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            fontSize: '11px',
+            fontWeight: 600,
+            color: 'var(--color-text-secondary, #475569)',
+            cursor: 'pointer',
+          }}
+        >
+          <Compass size={14} />
+          <span>Tour</span>
+        </button>
+      </div>
+    </header>
+
+    {/* Mobile Bottom Tab Bar (Visible on <= 768px, Apple HIG style) */}
+    <nav className="mobile-bottom-bar">
+      <div
+        className={`mobile-tab-item ${activePage === 'dashboard' ? 'is-active' : ''}`}
+        onClick={() => onSelectPage('dashboard')}
+      >
+        <Home size={18} />
+        <span>Compensation</span>
+      </div>
+
+      <div
+        className={`mobile-tab-item ${activePage === 'chat' ? 'is-active' : ''}`}
+        onClick={() => onSelectPage('chat')}
+      >
+        <div style={{ position: 'relative' }}>
+          <Bot size={18} />
+          <span
+            style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-6px',
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: '#2563eb',
+            }}
+          />
+        </div>
+        <span>Ask AI</span>
+      </div>
+
+      <div
+        className={`mobile-tab-item ${activePage === 'analytics' ? 'is-active' : ''}`}
+        onClick={() => onSelectPage('analytics')}
+      >
+        <BarChart3 size={18} />
+        <span>Analytics</span>
+      </div>
+
+      <div
+        className={`mobile-tab-item ${activePage === 'fx' ? 'is-active' : ''}`}
+        onClick={() => onSelectPage('fx')}
+      >
+        <ArrowRightLeft size={18} />
+        <span>FX Rates</span>
+      </div>
+    </nav>
+  </>
   );
 }

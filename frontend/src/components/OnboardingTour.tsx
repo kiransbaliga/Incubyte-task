@@ -186,6 +186,22 @@ export function OnboardingTour({ isOpen, onClose, onNavigatePage }: OnboardingTo
 
   // Calculate popover style based on targetRect & placement
   const getPopoverStyle = (): React.CSSProperties => {
+    const isMobile = windowDimensions.width <= 640;
+
+    if (isMobile) {
+      return {
+        position: 'fixed',
+        bottom: '24px',
+        left: '16px',
+        right: '16px',
+        width: 'calc(100vw - 32px)',
+        maxWidth: '500px',
+        margin: '0 auto',
+        zIndex: 10001,
+        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+      };
+    }
+
     if (!targetRect) {
       // Fallback center modal if element not found
       return {

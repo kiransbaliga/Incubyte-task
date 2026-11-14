@@ -110,49 +110,61 @@ export function FilterBar({
           )}
         </HStack>
 
-        <HStack gap={2} align="end" wrap="wrap" width="100%">
-          <TextInput
-            label="Search Employee"
-            placeholder="Search by name, email, or ACME-ID..."
-            value={search}
-            onChange={(val) => onSearchChange(val)}
-            width={260}
-          />
-          <Selector
-            label="Department"
-            options={DEPARTMENT_OPTIONS}
-            value={department}
-            onChange={(val) => onDepartmentChange(val)}
-            width={160}
-          />
-          <Selector
-            label="Country"
-            options={COUNTRY_OPTIONS}
-            value={country}
-            onChange={(val) => onCountryChange(val)}
-            width={160}
-          />
-          <Selector
-            label="Level"
-            options={LEVEL_OPTIONS}
-            value={level}
-            onChange={(val) => onLevelChange(val)}
-            width={140}
-          />
-          <Selector
-            label="Status"
-            options={STATUS_OPTIONS}
-            value={status}
-            onChange={(val) => onStatusChange(val)}
-            width={130}
-          />
-          <Button
-            variant="secondary"
-            label="Reset"
-            isDisabled={!isFiltered}
-            clickAction={onReset}
-          />
-        </HStack>
+        <div className="filter-bar-inputs">
+          <div className="filter-search-field" style={{ flex: '1 1 240px', minWidth: '220px' }}>
+            <TextInput
+              label="Search Employee"
+              placeholder="Search by name, email, or ACME-ID..."
+              value={search}
+              onChange={(val) => onSearchChange(val)}
+              width="100%"
+            />
+          </div>
+          <div className="filter-select-field" style={{ flex: '1 1 140px', minWidth: '130px' }}>
+            <Selector
+              label="Department"
+              options={DEPARTMENT_OPTIONS}
+              value={department}
+              onChange={(val) => onDepartmentChange(val)}
+              width="100%"
+            />
+          </div>
+          <div className="filter-select-field" style={{ flex: '1 1 140px', minWidth: '130px' }}>
+            <Selector
+              label="Country"
+              options={COUNTRY_OPTIONS}
+              value={country}
+              onChange={(val) => onCountryChange(val)}
+              width="100%"
+            />
+          </div>
+          <div className="filter-select-field" style={{ flex: '1 1 120px', minWidth: '110px' }}>
+            <Selector
+              label="Level"
+              options={LEVEL_OPTIONS}
+              value={level}
+              onChange={(val) => onLevelChange(val)}
+              width="100%"
+            />
+          </div>
+          <div className="filter-select-field" style={{ flex: '1 1 120px', minWidth: '110px' }}>
+            <Selector
+              label="Status"
+              options={STATUS_OPTIONS}
+              value={status}
+              onChange={(val) => onStatusChange(val)}
+              width="100%"
+            />
+          </div>
+          <div className="filter-reset-button" style={{ alignSelf: 'flex-end', minHeight: '38px' }}>
+            <Button
+              variant="secondary"
+              label="Reset"
+              isDisabled={!isFiltered}
+              clickAction={onReset}
+            />
+          </div>
+        </div>
       </VStack>
     </Card>
   );

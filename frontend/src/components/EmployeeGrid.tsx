@@ -197,24 +197,139 @@ export function EmployeeGrid({
   return (
     <Card padding={0}>
       <VStack gap={0} width="100%">
-        <Table<EmployeeRow>
-          data={employees as EmployeeRow[]}
-          columns={columns}
-          idKey="id"
-          hasHover
-          dividers="rows"
-        />
+        {/* Desktop Table View */}
+        <div className="desktop-employee-table" style={{ width: '100%' }}>
+          <Table<EmployeeRow>
+            data={employees as EmployeeRow[]}
+            columns={columns}
+            idKey="id"
+            hasHover
+            dividers="rows"
+          />
+        </div>
 
+        {/* Mobile Employee Card List View */}
+        <div className="mobile-employee-list" style={{ width: '100%', padding: '12px' }}>
+          {employees.map((emp) => {
+            const flag = COUNTRY_FLAGS[emp.country] || '🌐';
+            const statusVariant =
+              emp.employmentStatus === 'active'
+                ? 'success'
+                : emp.employmentStatus === 'inactive'
+                ? 'warning'
+                : 'error';
+            const statusLabel =
+              emp.employmentStatus.charAt(0).toUpperCase() + emp.employmentStatus.slice(1);
+            const lvl = emp.level;
+            const levelVariant =
+              lvl === 'L5' || lvl === 'L6'
+                ? 'purple'
+                : lvl === 'L3' || lvl === 'L4'
+                ? 'blue'
+                : 'neutral';
+
+            return (
+              <div
+                key={emp.id}
+                className="mobile-employee-card"
+                onClick={() => onEdit(emp)}
+              >
+                {/* Top Row: Avatar, Name, Status Badge */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Avatar name={emp.fullName} size="sm" shape="circle" />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--color-text-primary, #0f172a)' }}>
+                        {emp.fullName}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary, #64748b)' }}>
+                        {emp.email}
+                      </div>
+                    </div>
+                  </div>
+                  <Badge variant={statusVariant} label={statusLabel} />
+                </div>
+
+                {/* Middle Row: Code, Department, Level, Country Flag */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '12px' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono, monospace)',
+                      fontWeight: 600,
+                      fontSize: '11px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      backgroundColor: 'rgba(0,0,0,0.04)',
+                      color: 'var(--color-primary-main, #2563eb)',
+                    }}
+                  >
+                    {emp.employeeCode}
+                  </span>
+                  <span style={{ color: 'var(--color-text-secondary, #64748b)' }}>•</span>
+                  <span>{emp.department}</span>
+                  <Badge variant={levelVariant} label={emp.level} />
+                  <span style={{ color: 'var(--color-text-secondary, #64748b)' }}>•</span>
+                  <span>{flag} {emp.country}</span>
+                </div>
+
+                {/* Bottom Row: Compensation Details & Quick Edit */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingTop: '8px',
+                    borderTop: '1px solid var(--color-border-subtle, #f1f5f9)',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#15803d' }} data-tabular-nums>
+                      {formatUsd(emp.baseSalaryUsd)}{' '}
+                      <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--color-text-secondary, #64748b)' }}>
+                        / USD
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-secondary, #64748b)' }}>
+                      Local: {formatLocalCurrency(emp.localBaseSalary, emp.localCurrency)}
+                      {Number(emp.localBonusTarget) > 0 && ` (+${formatLocalCurrency(emp.localBonusTarget, emp.localCurrency)} bonus)`}
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    label="Edit"
+                    clickAction={(e: any) => {
+                      if (e && e.stopPropagation) e.stopPropagation();
+                      onEdit(emp);
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Pagination Toolbar */}
         <Card variant="transparent" padding={3}>
-          <HStack justify="between" align="center" width="100%">
-            <HStack gap={2} align="center">
-              <Text type="supporting" color="secondary">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              width: '100%',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Text type="supporting" color="secondary" style={{ fontSize: '12px' }}>
                 {isLoading
                   ? 'Querying indexed records...'
-                  : `Showing ${startRecord.toLocaleString()}–${endRecord.toLocaleString()} of ${totalCount.toLocaleString()} employees`}
+                  : `${startRecord.toLocaleString()}–${endRecord.toLocaleString()} of ${totalCount.toLocaleString()}`}
               </Text>
               <Badge variant="neutral" label="Sub-50ms P95" />
-            </HStack>
+            </div>
 
             <HStack gap={2} align="center">
               <Button
@@ -224,8 +339,8 @@ export function EmployeeGrid({
                 isDisabled={page <= 1 || isLoading}
                 clickAction={() => onPageChange(page - 1)}
               />
-              <Text type="body" hasTabularNumbers weight="medium">
-                Page {page} of {totalPages || 1}
+              <Text type="body" hasTabularNumbers weight="medium" style={{ fontSize: '13px' }}>
+                {page} / {totalPages || 1}
               </Text>
               <Button
                 variant="secondary"
@@ -235,7 +350,7 @@ export function EmployeeGrid({
                 clickAction={() => onPageChange(page + 1)}
               />
             </HStack>
-          </HStack>
+          </div>
         </Card>
       </VStack>
     </Card>

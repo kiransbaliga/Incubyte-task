@@ -167,12 +167,12 @@ export function CleanDashboardView({
           </div>
 
           {/* Huge Number */}
-          <div style={{ fontSize: '38px', fontWeight: 800, letterSpacing: '-1px', margin: '4px 0 16px 0', fontFamily: 'inherit' }} data-tabular-nums>
+          <div style={{ fontSize: 'clamp(28px, 6vw, 38px)', fontWeight: 800, letterSpacing: '-1px', margin: '4px 0 16px 0', fontFamily: 'inherit' }} data-tabular-nums>
             {headcount.toLocaleString()}
           </div>
 
           {/* Legend with colored squares (Reference Image) */}
-          <div style={{ display: 'flex', gap: '24px', marginBottom: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--color-text-secondary, #64748b)' }}>
               <span style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: '#22c55e', display: 'inline-block' }}></span>
               <span>Active (99.4%)</span>
@@ -188,7 +188,7 @@ export function CleanDashboardView({
           </div>
 
           {/* Metric Numbers Underneath Legend */}
-          <div style={{ display: 'flex', gap: '48px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '16px' }}>
             <span style={{ fontSize: '20px', fontWeight: 700 }} data-tabular-nums>9,940</span>
             <span style={{ fontSize: '20px', fontWeight: 700 }} data-tabular-nums>40</span>
             <span style={{ fontSize: '20px', fontWeight: 700 }} data-tabular-nums>20</span>
@@ -212,12 +212,12 @@ export function CleanDashboardView({
           </div>
 
           {/* Huge Number */}
-          <div style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.5px', color: '#15803d', margin: '4px 0 16px 0' }} data-tabular-nums>
+          <div style={{ fontSize: 'clamp(24px, 5.5vw, 32px)', fontWeight: 800, letterSpacing: '-0.5px', color: '#15803d', margin: '4px 0 16px 0', wordBreak: 'break-word' }} data-tabular-nums>
             {formatUsd(totalPayroll)}
           </div>
 
           {/* Legend */}
-          <div style={{ display: 'flex', gap: '20px', marginBottom: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--color-text-secondary, #64748b)' }}>
               <span style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: '#3b82f6', display: 'inline-block' }}></span>
               <span>Engineering (36%)</span>
@@ -233,7 +233,7 @@ export function CleanDashboardView({
           </div>
 
           {/* Sub Numbers */}
-          <div style={{ display: 'flex', gap: '36px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '16px' }}>
             <span style={{ fontSize: '18px', fontWeight: 700 }} data-tabular-nums>$361.4M</span>
             <span style={{ fontSize: '18px', fontWeight: 700 }} data-tabular-nums>$165.2M</span>
             <span style={{ fontSize: '18px', fontWeight: 700 }} data-tabular-nums>$138.2M</span>
