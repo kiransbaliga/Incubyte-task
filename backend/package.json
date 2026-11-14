@@ -12,6 +12,7 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:benchmark": "tsx src/db/benchmark.ts",
+    "bench:keyset": "tsx scripts/benchmark-keyset.ts",
     "db:studio": "drizzle-kit studio",
     "test": "vitest run"
   },

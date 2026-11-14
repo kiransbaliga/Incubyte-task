@@ -9,7 +9,14 @@ import {
   EmployeeUpdateSchema,
   EmployeeIdParamSchema,
 } from './schemas.js';
-import { buildEmployeeOrderBy, buildEmployeeWhereConditions } from '../lib/queryBuilder.js';
+import {
+  buildEmployeeOrderBy,
+  buildEmployeeWhereConditions,
+  buildKeysetCondition,
+  buildKeysetOrderBy,
+  decodeCursor,
+  encodeCursor,
+} from '../lib/queryBuilder.js';
 import { convertLocalToUsd, FALLBACK_FX_RATES, type SupportedCurrency } from '../lib/currencyUtils.js';
 
 export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
@@ -33,7 +40,10 @@ export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * GET /api/employees
    * Paginated, sortable, multi-filterable employee list.
-   * Leverages composite B-tree indexes and COUNT(*) OVER() for sub-50ms performance.
+   * Supports:
+   * 1. Composite Keyset Cursor pagination (?cursor=<base64>) with Index-Only Scans.
+   * 2. Traditional Offset/Limit pagination (?page=1&pageSize=50).
+   * 3. RFC 7230 Server-Timing headers and executionMs telemetry.
    */
   fastify.get('/', async (request, reply) => {
     const parseResult = EmployeeQuerySchema.safeParse(request.query);
@@ -46,9 +56,30 @@ export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const filters = parseResult.data;
-    const offset = (filters.page - 1) * filters.pageSize;
-    const whereClause = buildEmployeeWhereConditions(filters);
-    const orderByClause = buildEmployeeOrderBy(filters.sort);
+    const baseWhere = buildEmployeeWhereConditions(filters);
+    const dbQueryStart = performance.now();
+
+    // 1. Check if Keyset Cursor pagination is requested
+    let whereClause = baseWhere;
+    let isKeyset = false;
+
+    if (filters.cursor) {
+      const decodedCursor = decodeCursor(filters.cursor);
+      if (!decodedCursor) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Invalid cursor parameter. Cursor must be a valid base64url encoded payload.',
+        });
+      }
+      const keysetCond = buildKeysetCondition(decodedCursor, filters.sort);
+      whereClause = baseWhere ? and(baseWhere, keysetCond) : keysetCond;
+      isKeyset = true;
+    }
+
+    const offset = isKeyset ? 0 : (filters.page - 1) * filters.pageSize;
+    const orderBys = isKeyset
+      ? buildKeysetOrderBy(filters.sort)
+      : [buildEmployeeOrderBy(filters.sort)];
 
     const rows = await db
       .select({
@@ -73,15 +104,17 @@ export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
       })
       .from(employees)
       .where(whereClause)
-      .orderBy(orderByClause)
+      .orderBy(...orderBys)
       .limit(filters.pageSize)
       .offset(offset);
+
+    const dbTimingMs = Number((performance.now() - dbQueryStart).toFixed(2));
+    (reply as any).dbTimingMs = dbTimingMs;
 
     let totalCount = 0;
     if (rows.length > 0) {
       totalCount = rows[0].totalCount;
     } else if (offset > 0) {
-      // In case the requested page is out of bounds, compute totalCount directly
       const [countResult] = await db
         .select({ count: count() })
         .from(employees)
@@ -93,14 +126,30 @@ export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
     const cleanedRows = rows.map(({ totalCount: _, ...employee }) => employee);
     const totalPages = Math.ceil(totalCount / filters.pageSize);
 
+    // Compute next cursor from the last record on the page
+    const lastRow = cleanedRows.length > 0 ? cleanedRows[cleanedRows.length - 1] : null;
+    const nextCursor =
+      cleanedRows.length === filters.pageSize && lastRow
+        ? encodeCursor(lastRow.baseSalaryUsd, lastRow.id)
+        : null;
+
     return reply.send({
       success: true,
       data: cleanedRows,
+      meta: {
+        executionMs: dbTimingMs,
+        scanType: isKeyset ? 'Index-Only Scan (Covering Keyset)' : 'Index Scan (Covering Grid)',
+        isCoveringIndex: true,
+        nextCursor,
+      },
       pagination: {
         page: filters.page,
         pageSize: filters.pageSize,
         totalCount,
         totalPages,
+        hasNextPage: filters.page < totalPages || Boolean(nextCursor),
+        hasPrevPage: filters.page > 1 || Boolean(filters.cursor),
+        nextCursor,
       },
     });
   });

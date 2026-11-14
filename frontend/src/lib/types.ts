@@ -37,6 +37,7 @@ export interface SalaryRevision {
 export interface EmployeeFilters {
   page: number;
   pageSize: number;
+  cursor?: string;
   sort?: string;
   country?: string;
   department?: string;
@@ -45,6 +46,13 @@ export interface EmployeeFilters {
   salaryMin?: number;
   salaryMax?: number;
   search?: string;
+}
+
+export interface QueryMeta {
+  executionMs: number;
+  scanType: string;
+  isCoveringIndex: boolean;
+  nextCursor?: string | null;
 }
 
 export interface StatsResponse {

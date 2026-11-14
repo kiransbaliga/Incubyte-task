@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import { buildEmployeeWhereConditions, buildEmployeeOrderBy } from '../lib/queryBuilder.js';
+import {
+  buildEmployeeWhereConditions,
+  buildEmployeeOrderBy,
+  encodeCursor,
+  decodeCursor,
+  buildKeysetCondition,
+  buildKeysetOrderBy,
+} from '../lib/queryBuilder.js';
 
 const dialect = new PgDialect();
 
@@ -183,6 +190,48 @@ describe('queryBuilder', () => {
     it('handles case-insensitive direction values (ASC / DESC)', () => {
       expect(dialect.sqlToQuery(buildEmployeeOrderBy('full_name:ASC')).sql).toBe('"employees"."full_name" asc');
       expect(dialect.sqlToQuery(buildEmployeeOrderBy('level:DESC')).sql).toBe('"employees"."level" desc');
+    });
+  });
+
+  describe('Keyset Cursor Pagination (encodeCursor, decodeCursor, buildKeysetCondition)', () => {
+    it('correctly round-trips cursor encoding and decoding', () => {
+      const original = { sortValue: '175000.00', id: 'f8e2f15b-98f9-4cd4-88d8-ff8eea8ecb9f' };
+      const encoded = encodeCursor(original.sortValue, original.id);
+      expect(typeof encoded).toBe('string');
+      expect(encoded.length).toBeGreaterThan(10);
+
+      const decoded = decodeCursor(encoded);
+      expect(decoded).toEqual(original);
+    });
+
+    it('returns null when decoding malformed or corrupt cursor strings', () => {
+      expect(decodeCursor('not-valid-base64-json!')).toBeNull();
+      expect(decodeCursor(Buffer.from('{"missingId": true}').toString('base64url'))).toBeNull();
+    });
+
+    it('builds composite tuple comparison for base_salary_usd DESC keyset condition', () => {
+      const cursor = { sortValue: '150000.00', id: '11111111-1111-1111-1111-111111111111' };
+      const cond = buildKeysetCondition(cursor, 'base_salary_usd:desc');
+      const query = dialect.sqlToQuery(cond);
+
+      expect(query.sql).toContain('("employees"."base_salary_usd", "employees"."id") < ($1, $2)');
+      expect(query.params).toEqual(['150000.00', '11111111-1111-1111-1111-111111111111']);
+    });
+
+    it('builds composite tuple comparison for base_salary_usd ASC keyset condition', () => {
+      const cursor = { sortValue: '85000.00', id: '22222222-2222-2222-2222-222222222222' };
+      const cond = buildKeysetCondition(cursor, 'base_salary_usd:asc');
+      const query = dialect.sqlToQuery(cond);
+
+      expect(query.sql).toContain('("employees"."base_salary_usd", "employees"."id") > ($1, $2)');
+      expect(query.params).toEqual(['85000.00', '22222222-2222-2222-2222-222222222222']);
+    });
+
+    it('builds composite order by with secondary tie-breaker id', () => {
+      const orders = buildKeysetOrderBy('base_salary_usd:desc');
+      expect(orders.length).toBe(2);
+      expect(dialect.sqlToQuery(orders[0]).sql).toBe('"employees"."base_salary_usd" desc');
+      expect(dialect.sqlToQuery(orders[1]).sql).toBe('"employees"."id" desc');
     });
   });
 });

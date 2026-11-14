@@ -15,16 +15,16 @@
 ---
 
 ## Phase 2: Keyset Pagination, Covering Indexes & Telemetry (Feature 2)
-- [ ] **Task 2.1**: Create PostgreSQL covering index (`idx_employees_covering_grid`) with `INCLUDE (...)` clause.
-- [ ] **Task 2.2**: Implement base64 keyset cursor encoding/decoding and composite predicate `WHERE (base_salary_usd, id) < ($1, $2)` in queryBuilder.
-- [ ] **Task 2.3**: Update `GET /api/employees` to support cursor navigation (`?cursor=<base64>`).
-- [ ] **Task 2.4**: Implement Fastify `Server-Timing` header hook and return `meta.executionMs` in API responses.
-- [ ] **Task 2.5**: Create benchmark script `backend/scripts/benchmark-keyset.ts` (`npm run bench:keyset`) proving Index-Only Scans with 0 heap fetches.
-- [ ] **Task 2.6**: Update Frontend `EmployeeGrid.tsx` with live query telemetry badge (`PostgreSQL 16 · X.Xms (Index-Only)`).
+- [x] **Task 2.1**: Create PostgreSQL covering index (`idx_employees_covering_grid`) with `INCLUDE (...)` clause.
+- [x] **Task 2.2**: Implement base64 keyset cursor encoding/decoding and composite predicate `WHERE (base_salary_usd, id) < ($1, $2)` in queryBuilder.
+- [x] **Task 2.3**: Update `GET /api/employees` to support cursor navigation (`?cursor=<base64>`).
+- [x] **Task 2.4**: Implement Fastify `Server-Timing` header hook and return `meta.executionMs` in API responses.
+- [x] **Task 2.5**: Create benchmark script `backend/scripts/benchmark-keyset.ts` (`npm run bench:keyset`) proving Index-Only Scans with 0 heap fetches.
+- [x] **Task 2.6**: Update Frontend `EmployeeGrid.tsx` with live query telemetry badge (`PostgreSQL 16 · X.Xms (Index-Only)`).
 
 ### Checkpoint: Phase 2 Verification
-- [ ] `npm run bench:keyset` runs `EXPLAIN (ANALYZE, BUFFERS)` showing sub-5ms P99 on page 200 with 0 heap fetches.
-- [ ] `Server-Timing` headers confirmed via `curl -I http://localhost:3001/api/employees`.
+- [x] `npm run bench:keyset` runs `EXPLAIN (ANALYZE, BUFFERS)` showing sub-5ms P99 on page 200 with 0 heap fetches.
+- [x] `Server-Timing` headers confirmed via `curl -I http://localhost:3001/api/employees`.
 
 ---
 

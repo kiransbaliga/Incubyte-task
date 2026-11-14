@@ -22,6 +22,7 @@ const stringOrArray = z.union([z.string(), z.array(z.string())])
 export const EmployeeQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(50),
+  cursor: z.string().optional(),
   sort: z.string().default('base_salary_usd:desc'),
   country: stringOrArray,
   department: stringOrArray,

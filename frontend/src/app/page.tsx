@@ -168,6 +168,7 @@ export default function HomePage() {
               pageSize={pageSize}
               totalCount={employeesQuery.data?.pagination?.totalCount || 0}
               totalPages={employeesQuery.data?.pagination?.totalPages || 1}
+              queryMeta={employeesQuery.data?.meta}
               onPageChange={setPage}
               onEditEmployee={handleEditEmployee}
               onAddEmployee={handleAddEmployee}

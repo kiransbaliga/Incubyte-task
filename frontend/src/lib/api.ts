@@ -1,4 +1,4 @@
-import type { Employee, EmployeeFilters, StatsResponse, AIQueryResponse, FxRateItem, AnalyticsResponse, SalaryRevision } from './types';
+import type { Employee, EmployeeFilters, StatsResponse, AIQueryResponse, FxRateItem, AnalyticsResponse, SalaryRevision, QueryMeta } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL !== undefined
   ? process.env.NEXT_PUBLIC_API_URL
@@ -11,12 +11,16 @@ export async function getEmployees(filters: EmployeeFilters): Promise<{
     pageSize: number;
     totalCount: number;
     totalPages: number;
+    nextCursor?: string | null;
   };
+  meta?: QueryMeta;
+  serverTiming?: string | null;
 }> {
   const query = new URLSearchParams();
   query.set('page', String(filters.page));
   query.set('pageSize', String(filters.pageSize));
 
+  if (filters.cursor) query.set('cursor', filters.cursor);
   if (filters.sort) query.set('sort', filters.sort);
   if (filters.country && filters.country !== 'all') query.set('country', filters.country);
   if (filters.department && filters.department !== 'all') query.set('department', filters.department);
@@ -34,6 +38,8 @@ export async function getEmployees(filters: EmployeeFilters): Promise<{
   return {
     data: json.data || [],
     pagination: json.pagination || { page: 1, pageSize: 50, totalCount: 0, totalPages: 0 },
+    meta: json.meta,
+    serverTiming: res.headers.get('Server-Timing'),
   };
 }
 

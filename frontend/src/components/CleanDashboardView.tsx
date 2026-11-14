@@ -10,7 +10,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { FilterBar } from './FilterBar';
 import { EmployeeGrid } from './EmployeeGrid';
 import { formatUsd } from '../lib/formatters';
-import type { Employee, StatsResponse, AnalyticsResponse } from '../lib/types';
+import type { Employee, StatsResponse, AnalyticsResponse, QueryMeta } from '../lib/types';
 import { Plus, ArrowUpRight, Globe, CheckCircle2 } from 'lucide-react';
 
 interface CleanDashboardViewProps {
@@ -22,6 +22,7 @@ interface CleanDashboardViewProps {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  queryMeta?: QueryMeta;
   onPageChange: (page: number) => void;
   onEditEmployee: (emp: Employee) => void;
   onAddEmployee: () => void;
@@ -48,6 +49,7 @@ export function CleanDashboardView({
   pageSize,
   totalCount,
   totalPages,
+  queryMeta,
   onPageChange,
   onEditEmployee,
   onAddEmployee,
@@ -308,6 +310,7 @@ export function CleanDashboardView({
             pageSize={pageSize}
             totalCount={totalCount}
             totalPages={totalPages}
+            meta={queryMeta}
             onPageChange={onPageChange}
             onEdit={onEditEmployee}
           />

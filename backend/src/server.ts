@@ -25,7 +25,24 @@ export async function buildServer(): Promise<FastifyInstance> {
   await server.register(cors, {
     origin: process.env.CORS_ORIGIN || true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    exposedHeaders: ['Server-Timing', 'ETag'],
     credentials: true,
+  });
+
+  // RFC 7230 Server-Timing instrumentation hooks
+  server.addHook('onRequest', async (request) => {
+    (request as any).startTime = performance.now();
+  });
+
+  server.addHook('onSend', async (request, reply) => {
+    const start = (request as any).startTime;
+    if (typeof start === 'number') {
+      const totalMs = (performance.now() - start).toFixed(2);
+      const dbTiming = (reply as any).dbTimingMs !== undefined
+        ? Number((reply as any).dbTimingMs).toFixed(2)
+        : totalMs;
+      reply.header('Server-Timing', `db;dur=${dbTiming};desc="Database", total;dur=${totalMs};desc="Total Roundtrip"`);
+    }
   });
 
   // Health check endpoint

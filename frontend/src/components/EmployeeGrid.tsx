@@ -11,7 +11,7 @@ import { Avatar } from '@astryxdesign/core/Avatar';
 import { Table, proportional, pixel } from '@astryxdesign/core/Table';
 import type { TableColumn } from '@astryxdesign/core/Table';
 import { formatLocalCurrency, formatUsd } from '../lib/formatters';
-import type { Employee } from '../lib/types';
+import type { Employee, QueryMeta } from '../lib/types';
 import { Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface EmployeeGridProps {
@@ -21,6 +21,7 @@ interface EmployeeGridProps {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  meta?: QueryMeta;
   onPageChange: (page: number) => void;
   onEdit: (employee: Employee) => void;
 }
@@ -43,6 +44,7 @@ export function EmployeeGrid({
   pageSize,
   totalCount,
   totalPages,
+  meta,
   onPageChange,
   onEdit,
 }: EmployeeGridProps) {
@@ -322,13 +324,32 @@ export function EmployeeGrid({
               width: '100%',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <Text type="supporting" color="secondary" style={{ fontSize: '12px' }}>
                 {isLoading
                   ? 'Querying indexed records...'
                   : `${startRecord.toLocaleString()}–${endRecord.toLocaleString()} of ${totalCount.toLocaleString()}`}
               </Text>
-              <Badge variant="neutral" label="Sub-50ms P95" />
+              {meta ? (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '999px',
+                  padding: '2px 9px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#334155',
+                  fontFamily: 'monospace',
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                  <span>PostgreSQL 16 · {meta.executionMs}ms ({meta.scanType.includes('Index-Only') ? 'Index-Only' : 'Covering B-Tree'})</span>
+                </div>
+              ) : (
+                <Badge variant="neutral" label="PostgreSQL 16 · Sub-50ms P95" />
+              )}
             </div>
 
             <HStack gap={2} align="center">

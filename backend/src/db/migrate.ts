@@ -19,7 +19,15 @@ export async function runMigrations() {
 
   try {
     await migrate(migrationDb, { migrationsFolder });
-    console.log('✅ Migrations completed successfully.');
+
+    // Ensure covering index with INCLUDE clause is created for zero-heap-fetch keyset pagination
+    await migrationClient`
+      CREATE INDEX IF NOT EXISTS idx_employees_covering_grid 
+      ON employees (base_salary_usd DESC, id DESC) 
+      INCLUDE (employee_code, full_name, email, department, level, country, local_currency, local_base_salary, local_bonus_target, bonus_target_usd, employment_status, hire_date, version, created_at, updated_at);
+    `;
+
+    console.log('✅ Migrations and covering indexes completed successfully.');
   } catch (error) {
     console.error('❌ Migration failed:', error);
     throw error;
