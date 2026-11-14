@@ -1,16 +1,16 @@
 # SDE-2 Upgrades: Tasks & Verification Checklist
 
 ## Phase 1: Bi-Temporal Append-Only Ledger & Optimistic Concurrency Control (Feature 1)
-- [ ] **Task 1.1**: Add `salary_revisions` schema, `employees.version` column, and database migration.
-- [ ] **Task 1.2**: Update `seed.ts` to populate initial revision history for all 10,000 employees.
-- [ ] **Task 1.3**: Implement atomic `PATCH /api/employees/:id` with OCC version validation, revision insertion, and 409 Conflict handling.
-- [ ] **Task 1.4**: Add concurrency unit & integration tests (`backend/src/__tests__/concurrency.test.ts`) simulating parallel conflicting writes.
-- [ ] **Task 1.5**: Implement `GET /api/employees/:id/revisions` timeline history endpoint.
-- [ ] **Task 1.6**: Update Frontend `EmployeeDrawer.tsx` with Revision History tab and 409 Conflict retry modal.
+- [x] **Task 1.1**: Add `salary_revisions` schema, `employees.version` column, and database migration.
+- [x] **Task 1.2**: Update `seed.ts` to populate initial revision history for all 10,000 employees.
+- [x] **Task 1.3**: Implement atomic `PATCH /api/employees/:id` with OCC version validation, revision insertion, and 409 Conflict handling.
+- [x] **Task 1.4**: Add concurrency unit & integration tests (`backend/src/__tests__/concurrency.test.ts`) simulating parallel conflicting writes.
+- [x] **Task 1.5**: Implement `GET /api/employees/:id/revisions` timeline history endpoint.
+- [x] **Task 1.6**: Update Frontend `EmployeeDrawer.tsx` with Revision History tab and 409 Conflict retry modal.
 
 ### Checkpoint: Phase 1 Verification
-- [ ] Concurrency tests pass (`npm test`) proving lost-update protection via 409 Conflict.
-- [ ] Salary history verified immutable and point-in-time queryable.
+- [x] Concurrency tests pass (`npm test`) proving lost-update protection via 409 Conflict.
+- [x] Salary history verified immutable and point-in-time queryable.
 
 ---
 

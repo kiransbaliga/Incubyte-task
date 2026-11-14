@@ -69,8 +69,14 @@ export type EmployeeCreateInput = z.infer<typeof EmployeeCreateSchema>;
 
 /**
  * PATCH /api/employees/:id body schema
+ * Supports Optimistic Concurrency Control (OCC) via version column
+ * and revision reason for bi-temporal salary ledger.
  */
-export const EmployeeUpdateSchema = EmployeeCreateSchema.partial();
+export const EmployeeUpdateSchema = EmployeeCreateSchema.partial().extend({
+  version: z.coerce.number().int().min(1).optional(),
+  revisionReason: z.string().trim().max(255).optional(),
+  changedBy: z.string().trim().max(255).optional(),
+});
 
 export type EmployeeUpdateInput = z.infer<typeof EmployeeUpdateSchema>;
 

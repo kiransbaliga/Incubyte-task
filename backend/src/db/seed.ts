@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { faker } from '@faker-js/faker';
 import { db, primarySql } from './index.js';
-import { employees, fxRates, type NewEmployee, type NewFxRate } from './schema.js';
+import { employees, fxRates, salaryRevisions, type NewEmployee, type NewFxRate } from './schema.js';
 import { sql } from 'drizzle-orm';
 
 // Static corporate FX planning rates (USD base)
@@ -88,12 +88,52 @@ export async function seedDatabase(targetCount = 10000, force = false): Promise<
   const existingCount = existingCountResult[0]?.count || 0;
 
   if (existingCount >= targetCount && !force) {
+    // Check if salary_revisions need backfilling for existing employees
+    const revCountResult = await db.select({ count: sql<number>`count(*)::int` }).from(salaryRevisions);
+    const revCount = revCountResult[0]?.count || 0;
+    console.log(`ℹ️ Existing employees: ${existingCount.toLocaleString()}, Revisions: ${revCount.toLocaleString()}`);
+    if (revCount === 0 && existingCount > 0) {
+      console.log(`📜 Backfilling initial salary revisions for ${existingCount.toLocaleString()} employees...`);
+      await db.execute(sql`
+        INSERT INTO salary_revisions (
+          employee_id,
+          effective_from,
+          effective_to,
+          local_base_salary,
+          local_bonus_target,
+          local_currency,
+          fx_rate_snapshot,
+          base_salary_usd,
+          bonus_target_usd,
+          reason,
+          changed_by,
+          created_at
+        )
+        SELECT 
+          e.id,
+          (e.hire_date::timestamp with time zone),
+          NULL,
+          e.local_base_salary,
+          e.local_bonus_target,
+          e.local_currency,
+          fx.rate_to_usd,
+          e.base_salary_usd,
+          e.bonus_target_usd,
+          'Initial Calibration',
+          'system',
+          NOW()
+        FROM employees e
+        JOIN fx_rates fx ON e.local_currency = fx.currency_code;
+      `);
+      console.log(`✅ Backfilled initial salary revisions.`);
+    }
     console.log(`ℹ️ Database already seeded with ${existingCount.toLocaleString()} employees. Skipping.`);
     return;
   }
 
   if (force && existingCount > 0) {
     console.log(`🧹 Clearing existing data (--force enabled)...`);
+    await db.delete(salaryRevisions);
     await db.delete(employees);
     await db.delete(fxRates);
   }
@@ -208,8 +248,42 @@ export async function seedDatabase(targetCount = 10000, force = false): Promise<
     process.stdout.write(`\r  ⚡ Inserted ${insertedCount.toLocaleString()} / ${targetCount.toLocaleString()} rows...`);
   }
 
+  // Populate initial revision ledger entries for all inserted employees
+  console.log(`\n📜 Populating initial salary revisions for ${targetCount.toLocaleString()} employees...`);
+  await db.execute(sql`
+    INSERT INTO salary_revisions (
+      employee_id,
+      effective_from,
+      effective_to,
+      local_base_salary,
+      local_bonus_target,
+      local_currency,
+      fx_rate_snapshot,
+      base_salary_usd,
+      bonus_target_usd,
+      reason,
+      changed_by,
+      created_at
+    )
+    SELECT 
+      e.id,
+      (e.hire_date::timestamp with time zone),
+      NULL,
+      e.local_base_salary,
+      e.local_bonus_target,
+      e.local_currency,
+      fx.rate_to_usd,
+      e.base_salary_usd,
+      e.bonus_target_usd,
+      'Initial Calibration',
+      'system',
+      NOW()
+    FROM employees e
+    JOIN fx_rates fx ON e.local_currency = fx.currency_code;
+  `);
+
   const durationSec = ((performance.now() - startTime) / 1000).toFixed(2);
-  console.log(`\n✅ Seeding completed! Inserted ${insertedCount.toLocaleString()} employees in ${durationSec}s.`);
+  console.log(`\n✅ Seeding completed! Inserted ${insertedCount.toLocaleString()} employees and revisions in ${durationSec}s.`);
 }
 
 // Auto-run if executed directly via CLI

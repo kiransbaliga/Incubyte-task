@@ -1,4 +1,4 @@
-import type { Employee, EmployeeFilters, StatsResponse, AIQueryResponse, FxRateItem, AnalyticsResponse } from './types';
+import type { Employee, EmployeeFilters, StatsResponse, AIQueryResponse, FxRateItem, AnalyticsResponse, SalaryRevision } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL !== undefined
   ? process.env.NEXT_PUBLIC_API_URL
@@ -86,17 +86,47 @@ export async function createEmployee(data: Partial<Employee>): Promise<Employee>
   return json.data;
 }
 
-export async function updateEmployee(id: string, data: Partial<Employee>): Promise<Employee> {
+export class ConcurrencyConflictError extends Error {
+  currentVersion?: number;
+  latestData?: Employee;
+  constructor(message: string, currentVersion?: number, latestData?: Employee) {
+    super(message);
+    this.name = 'ConcurrencyConflictError';
+    this.currentVersion = currentVersion;
+    this.latestData = latestData;
+  }
+}
+
+export async function updateEmployee(
+  id: string,
+  data: Partial<Employee> & { revisionReason?: string; changedBy?: string }
+): Promise<Employee> {
   const res = await fetch(`${API_BASE}/api/employees/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
   const json = await res.json();
+  if (res.status === 409 || json.error === 'CONCURRENT_MODIFICATION') {
+    throw new ConcurrencyConflictError(
+      json.message || 'Record was modified by another session. Please reload to see the latest version.',
+      json.currentVersion,
+      json.data
+    );
+  }
   if (!res.ok || !json.success) {
     throw new Error(json.error || 'Failed to update employee');
   }
   return json.data;
+}
+
+export async function getSalaryRevisions(id: string): Promise<SalaryRevision[]> {
+  const res = await fetch(`${API_BASE}/api/employees/${id}/revisions`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch salary revisions: ${res.statusText}`);
+  }
+  const json = await res.json();
+  return json.data || [];
 }
 
 export async function deleteEmployee(id: string): Promise<void> {

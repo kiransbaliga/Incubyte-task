@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, char, numeric, date, timestamp, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, char, numeric, date, timestamp, integer, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 /**
@@ -15,6 +15,7 @@ export const fxRates = pgTable('fx_rates', {
  * Global Employees table supporting 10,000+ records.
  * Optimized with composite B-Tree indexes for sub-50ms filtered & sorted queries,
  * and a GIN trigram index for fast text search.
+ * Includes version column for Optimistic Concurrency Control (OCC).
  */
 export const employees = pgTable('employees', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -31,6 +32,7 @@ export const employees = pgTable('employees', {
   bonusTargetUsd: numeric('bonus_target_usd', { precision: 14, scale: 2 }).notNull().default('0.00'),
   employmentStatus: varchar('employment_status', { length: 20 }).notNull().default('active'), // active, inactive, terminated
   hireDate: date('hire_date').notNull(),
+  version: integer('version').notNull().default(1), // Optimistic Concurrency Control
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
@@ -57,7 +59,39 @@ export const employees = pgTable('employees', {
   ),
 ]);
 
+/**
+ * Bi-temporal append-only salary revisions ledger.
+ * Implements immutable compensation change tracking with point-in-time validity.
+ */
+export const salaryRevisions = pgTable('salary_revisions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  employeeId: uuid('employee_id').notNull().references(() => employees.id, { onDelete: 'cascade' }),
+  effectiveFrom: timestamp('effective_from', { withTimezone: true }).defaultNow().notNull(),
+  effectiveTo: timestamp('effective_to', { withTimezone: true }), // null = current active revision
+  localBaseSalary: numeric('local_base_salary', { precision: 14, scale: 2 }).notNull(),
+  localBonusTarget: numeric('local_bonus_target', { precision: 14, scale: 2 }).notNull().default('0.00'),
+  localCurrency: char('local_currency', { length: 3 }).notNull(),
+  fxRateSnapshot: numeric('fx_rate_snapshot', { precision: 12, scale: 6 }).notNull(),
+  baseSalaryUsd: numeric('base_salary_usd', { precision: 14, scale: 2 }).notNull(),
+  bonusTargetUsd: numeric('bonus_target_usd', { precision: 14, scale: 2 }).notNull().default('0.00'),
+  reason: varchar('reason', { length: 255 }).notNull().default('Initial Calibration'),
+  changedBy: varchar('changed_by', { length: 255 }).notNull().default('system'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_salary_revisions_emp_dates').on(
+    table.employeeId,
+    table.effectiveFrom,
+    table.effectiveTo
+  ),
+  index('idx_salary_revisions_timeline').on(
+    table.effectiveFrom,
+    table.effectiveTo
+  ),
+]);
+
 export type Employee = typeof employees.$inferSelect;
 export type NewEmployee = typeof employees.$inferInsert;
+export type SalaryRevision = typeof salaryRevisions.$inferSelect;
+export type NewSalaryRevision = typeof salaryRevisions.$inferInsert;
 export type FxRate = typeof fxRates.$inferSelect;
 export type NewFxRate = typeof fxRates.$inferInsert;

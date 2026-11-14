@@ -13,8 +13,25 @@ export interface Employee {
   bonusTargetUsd: string | number;
   employmentStatus: 'active' | 'inactive' | 'terminated' | string;
   hireDate: string;
+  version: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SalaryRevision {
+  id: string;
+  employeeId: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  localBaseSalary: string | number;
+  localBonusTarget: string | number;
+  localCurrency: string;
+  fxRateSnapshot: string | number;
+  baseSalaryUsd: string | number;
+  bonusTargetUsd: string | number;
+  reason: string;
+  changedBy: string;
+  createdAt: string;
 }
 
 export interface EmployeeFilters {

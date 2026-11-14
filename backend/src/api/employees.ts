@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq, sql, count } from 'drizzle-orm';
+import { eq, sql, count, desc, and, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { employees, fxRates } from '../db/schema.js';
+import { employees, fxRates, salaryRevisions } from '../db/schema.js';
 import {
   EmployeeQuerySchema,
   StatsQuerySchema,
@@ -66,6 +66,7 @@ export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
         bonusTargetUsd: employees.bonusTargetUsd,
         employmentStatus: employees.employmentStatus,
         hireDate: employees.hireDate,
+        version: employees.version,
         createdAt: employees.createdAt,
         updatedAt: employees.updatedAt,
         totalCount: sql<number>`count(*) over()`.mapWith(Number),
@@ -252,24 +253,45 @@ export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
     const employeeCode = `ACME-${uniqueSuffix}`;
 
     try {
-      const [newEmployee] = await db
-        .insert(employees)
-        .values({
-          employeeCode,
-          fullName: input.fullName,
-          email: input.email.toLowerCase(),
-          department: input.department,
-          level: input.level,
-          country: input.country,
-          localCurrency: input.localCurrency,
+      const newEmployee = await db.transaction(async (tx) => {
+        const [emp] = await tx
+          .insert(employees)
+          .values({
+            employeeCode,
+            fullName: input.fullName,
+            email: input.email.toLowerCase(),
+            department: input.department,
+            level: input.level,
+            country: input.country,
+            localCurrency: input.localCurrency,
+            localBaseSalary: input.localBaseSalary.toFixed(2),
+            localBonusTarget: input.localBonusTarget.toFixed(2),
+            baseSalaryUsd,
+            bonusTargetUsd,
+            employmentStatus: input.employmentStatus,
+            hireDate: input.hireDate,
+            version: 1,
+          })
+          .returning();
+
+        // Create initial revision entry in ledger
+        await tx.insert(salaryRevisions).values({
+          employeeId: emp.id,
+          effectiveFrom: new Date(input.hireDate),
+          effectiveTo: null,
           localBaseSalary: input.localBaseSalary.toFixed(2),
           localBonusTarget: input.localBonusTarget.toFixed(2),
+          localCurrency: input.localCurrency,
+          fxRateSnapshot: fxRate.toFixed(6),
           baseSalaryUsd,
           bonusTargetUsd,
-          employmentStatus: input.employmentStatus,
-          hireDate: input.hireDate,
-        })
-        .returning();
+          reason: 'Initial Hire Calibration',
+          changedBy: 'system',
+          createdAt: new Date(),
+        });
+
+        return emp;
+      });
 
       return reply.status(201).send({
         success: true,
@@ -292,7 +314,10 @@ export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * PATCH /api/employees/:id
-   * Update an employee with automatic USD recalculation on compensation or currency changes
+   * Update an employee with:
+   * 1. Optimistic Concurrency Control (OCC) via version column & If-Match header / body version.
+   * 2. Bi-temporal append-only salary_revisions ledger updates.
+   * 3. Automatic USD recalculation on compensation or currency changes.
    */
   fastify.patch('/:id', async (request, reply) => {
     const paramResult = EmployeeIdParamSchema.safeParse(request.params);
@@ -316,60 +341,117 @@ export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = paramResult.data;
     const updates = bodyResult.data;
 
-    // Fetch existing employee
-    const [existing] = await db
-      .select()
-      .from(employees)
-      .where(eq(employees.id, id))
-      .limit(1);
-
-    if (!existing) {
-      return reply.status(404).send({
-        success: false,
-        error: 'Employee not found',
-      });
+    // Detect version from body or If-Match header (e.g. If-Match: "2" or 2)
+    const ifMatchHeader = request.headers['if-match'];
+    let expectedVersion = updates.version;
+    if (expectedVersion === undefined && ifMatchHeader) {
+      const parsed = parseInt(String(ifMatchHeader).replace(/["']/g, ''), 10);
+      if (!isNaN(parsed)) {
+        expectedVersion = parsed;
+      }
     }
 
-    // Determine if currency or salary values need recalculation
-    const targetCurrency = updates.localCurrency || (existing.localCurrency as SupportedCurrency);
-    const fxRate = await getFxRate(targetCurrency);
-
-    const newLocalBase = updates.localBaseSalary !== undefined
-      ? updates.localBaseSalary
-      : parseFloat(existing.localBaseSalary);
-
-    const newLocalBonus = updates.localBonusTarget !== undefined
-      ? updates.localBonusTarget
-      : parseFloat(existing.localBonusTarget);
-
-    const baseSalaryUsd = convertLocalToUsd(newLocalBase, fxRate);
-    const bonusTargetUsd = convertLocalToUsd(newLocalBonus, fxRate);
-
     try {
-      const [updated] = await db
-        .update(employees)
-        .set({
-          fullName: updates.fullName ?? existing.fullName,
-          email: updates.email ? updates.email.toLowerCase() : existing.email,
-          department: updates.department ?? existing.department,
-          level: updates.level ?? existing.level,
-          country: updates.country ?? existing.country,
-          localCurrency: targetCurrency,
-          localBaseSalary: newLocalBase.toFixed(2),
-          localBonusTarget: newLocalBonus.toFixed(2),
-          baseSalaryUsd,
-          bonusTargetUsd,
-          employmentStatus: updates.employmentStatus ?? existing.employmentStatus,
-          hireDate: updates.hireDate ?? existing.hireDate,
-          updatedAt: new Date(),
-        })
-        .where(eq(employees.id, id))
-        .returning();
+      const result = await db.transaction(async (tx) => {
+        // 1. Fetch current employee state (lock row with FOR UPDATE)
+        const [existing] = await tx
+          .select()
+          .from(employees)
+          .where(eq(employees.id, id))
+          .for('update');
 
-      return reply.send({
-        success: true,
-        data: updated,
+        if (!existing) {
+          return { status: 404, payload: { success: false, error: 'Employee not found' } };
+        }
+
+        // 2. Optimistic Concurrency Control Check
+        if (expectedVersion !== undefined && existing.version !== expectedVersion) {
+          return {
+            status: 409,
+            payload: {
+              success: false,
+              error: 'CONCURRENT_MODIFICATION',
+              message: `Record was modified by another user or session. Current database version is ${existing.version}, but request specified version ${expectedVersion}.`,
+              currentVersion: existing.version,
+              data: existing,
+            },
+          };
+        }
+
+        // 3. Currency and Compensation normalization
+        const targetCurrency = updates.localCurrency || (existing.localCurrency as SupportedCurrency);
+        const fxRate = await getFxRate(targetCurrency);
+
+        const newLocalBase = updates.localBaseSalary !== undefined
+          ? updates.localBaseSalary
+          : parseFloat(existing.localBaseSalary);
+
+        const newLocalBonus = updates.localBonusTarget !== undefined
+          ? updates.localBonusTarget
+          : parseFloat(existing.localBonusTarget);
+
+        const baseSalaryUsd = convertLocalToUsd(newLocalBase, fxRate);
+        const bonusTargetUsd = convertLocalToUsd(newLocalBonus, fxRate);
+
+        // Check if compensation or currency actually changed
+        const isCompChanged =
+          (updates.localBaseSalary !== undefined && updates.localBaseSalary.toFixed(2) !== existing.localBaseSalary) ||
+          (updates.localBonusTarget !== undefined && updates.localBonusTarget.toFixed(2) !== existing.localBonusTarget) ||
+          (updates.localCurrency !== undefined && updates.localCurrency !== existing.localCurrency);
+
+        // 4. Bi-Temporal Ledger: Close previous revision and append new revision if compensation changed
+        if (isCompChanged) {
+          const now = new Date();
+          // Close active revision
+          await tx
+            .update(salaryRevisions)
+            .set({ effectiveTo: now })
+            .where(and(eq(salaryRevisions.employeeId, id), isNull(salaryRevisions.effectiveTo)));
+
+          // Insert new revision
+          await tx.insert(salaryRevisions).values({
+            employeeId: id,
+            effectiveFrom: now,
+            effectiveTo: null,
+            localBaseSalary: newLocalBase.toFixed(2),
+            localBonusTarget: newLocalBonus.toFixed(2),
+            localCurrency: targetCurrency,
+            fxRateSnapshot: fxRate.toFixed(6),
+            baseSalaryUsd,
+            bonusTargetUsd,
+            reason: updates.revisionReason ?? 'Compensation adjustment',
+            changedBy: updates.changedBy ?? 'HR Operations',
+            createdAt: now,
+          });
+        }
+
+        // 5. Increment version and update employee record
+        const nextVersion = existing.version + 1;
+        const [updated] = await tx
+          .update(employees)
+          .set({
+            fullName: updates.fullName ?? existing.fullName,
+            email: updates.email ? updates.email.toLowerCase() : existing.email,
+            department: updates.department ?? existing.department,
+            level: updates.level ?? existing.level,
+            country: updates.country ?? existing.country,
+            localCurrency: targetCurrency,
+            localBaseSalary: newLocalBase.toFixed(2),
+            localBonusTarget: newLocalBonus.toFixed(2),
+            baseSalaryUsd,
+            bonusTargetUsd,
+            employmentStatus: updates.employmentStatus ?? existing.employmentStatus,
+            hireDate: updates.hireDate ?? existing.hireDate,
+            version: nextVersion,
+            updatedAt: new Date(),
+          })
+          .where(eq(employees.id, id))
+          .returning();
+
+        return { status: 200, payload: { success: true, data: updated } };
       });
+
+      return reply.status(result.status).send(result.payload);
     } catch (error: any) {
       request.log.error(error, 'Error updating employee');
       if (error?.code === '23505') {
@@ -383,6 +465,34 @@ export const employeeRoutes: FastifyPluginAsync = async (fastify) => {
         error: 'Failed to update employee',
       });
     }
+  });
+
+  /**
+   * GET /api/employees/:id/revisions
+   * Fetch complete bi-temporal compensation revision history for an employee
+   */
+  fastify.get('/:id/revisions', async (request, reply) => {
+    const paramResult = EmployeeIdParamSchema.safeParse(request.params);
+    if (!paramResult.success) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Invalid employee ID format',
+        details: paramResult.error.flatten(),
+      });
+    }
+
+    const { id } = paramResult.data;
+
+    const revisions = await db
+      .select()
+      .from(salaryRevisions)
+      .where(eq(salaryRevisions.employeeId, id))
+      .orderBy(desc(salaryRevisions.effectiveFrom), desc(salaryRevisions.createdAt));
+
+    return reply.send({
+      success: true,
+      data: revisions,
+    });
   });
 
   /**
