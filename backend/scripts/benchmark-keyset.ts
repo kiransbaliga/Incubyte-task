@@ -115,7 +115,7 @@ async function runKeysetBenchmark() {
   console.log(`│ Mean Execution Time           │ ${avgOffset.toFixed(2).padStart(13)}ms │ ${avgKeyset.toFixed(2).padStart(13)}ms │ ${(`${speedup}x faster`).padStart(16)} │`);
   console.log(`│ Root Plan Node                │ ${offsetRoot['Node Type'].padStart(15)} │ ${keysetRoot['Node Type'].padStart(15)} │                  │`);
   console.log(`│ Index Used                    │ ${(offsetPlanMeta['Planning Time'] ? 'B-Tree' : 'B-Tree').padStart(15)} │ ${(keysetRoot['Plans']?.[0]?.['Index Name'] || keysetRoot['Index Name'] || 'idx_covering').padStart(15)} │ Zero Heap Reads  │`);
-  console.log(`│ Target SLA (< 5.0ms)          │ ${avgOffset < 5 ? '       ✅ MET' : '    ❌ MISSED'} │ ${avgKeyset < 5 ? '       ✅ MET' : '    ❌ MISSED'} │ SDE-2 Performance│`);
+  console.log(`│ Target SLA (< 5.0ms)          │ ${avgOffset < 5 ? '       ✅ MET' : '    ❌ MISSED'} │ ${avgKeyset < 5 ? '       ✅ MET' : '    ❌ MISSED'} │ SLA Compliance  │`);
   console.log(`└───────────────────────────────┴─────────────────┴─────────────────┴──────────────────┘\n`);
 
   console.log(`🔍 POSTGRESQL EXPLAIN PLAN DETAILS:`);

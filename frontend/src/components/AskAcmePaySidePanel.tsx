@@ -50,6 +50,7 @@ const PROMPT_CHIPS = [
   'Top 5 earners in Engineering',
   'Compare L4 pay DE vs US',
   'Average salary by department',
+  'Pairwise employee disparity (Cost Gate)',
 ];
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -128,13 +129,16 @@ export function AskAcmePaySidePanel({
         },
       ]);
     } catch (err: any) {
+      const isCostGate = err.message?.toLowerCase().includes('exceeds the maximum') || err.message?.toLowerCase().includes('cost');
       setMessages((prev) => [
         ...prev,
         {
           id: assistantMsgId,
           sender: 'assistant',
-          text: 'I was unable to answer this question.',
-          error: err.message || 'An error occurred while verifying AST SQL safety guardrails.',
+          text: isCostGate
+            ? 'Blocked by Pre-Flight Cost Gate circuit breaker.'
+            : 'I was unable to answer this question.',
+          error: err.message || 'An error occurred while evaluating query execution safety.',
         },
       ]);
     } finally {

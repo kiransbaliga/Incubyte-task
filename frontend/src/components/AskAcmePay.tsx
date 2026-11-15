@@ -38,6 +38,7 @@ const PROMPT_CHIPS = [
   'Top 10 highest paid in Engineering',
   'Average salary by department',
   'Total payroll and headcount',
+  'Pairwise salary disparity (exceeds budget)',
 ];
 
 export function AskAcmePay({ isOpen, onOpenChange }: AskAcmePayProps) {
@@ -85,12 +86,15 @@ export function AskAcmePay({ isOpen, onOpenChange }: AskAcmePayProps) {
         },
       ]);
     } catch (err: any) {
+      const isCostGate = err.message?.toLowerCase().includes('exceeds the maximum') || err.message?.toLowerCase().includes('cost');
       setMessages((prev) => [
         ...prev,
         {
           id: assistantMsgId,
           sender: 'assistant',
-          text: 'I was unable to answer this question.',
+          text: isCostGate
+            ? 'Execution blocked: PostgreSQL planner estimated cost exceeds the safety budget.'
+            : 'I was unable to answer this question.',
           error: err.message || 'An error occurred while running the query guardrail.',
         },
       ]);

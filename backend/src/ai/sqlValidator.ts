@@ -40,7 +40,7 @@ const DANGEROUS_FUNCTIONS = [
 /**
  * Whitelisted physical database relations in ACME Compensation Hub.
  */
-const ALLOWED_TABLES = new Set(['employees', 'fx_rates']);
+const ALLOWED_TABLES = new Set(['employees', 'fx_rates', 'salary_revisions']);
 
 /**
  * Safely strips single-line (-- ...) and multi-line (/* ... *\/) comments from SQL.

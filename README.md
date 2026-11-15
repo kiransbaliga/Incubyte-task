@@ -73,7 +73,7 @@ Built with **Fastify**, **TypeScript**, **Drizzle ORM**, **PostgreSQL 16**, **Ne
 * **Dual Currency Columns:** Formatted local compensation paired with normalized USD base pay and target bonus.
 * **Employee Management:** Slide-over drawer with Zod validation and live USD conversion preview.
 
-### 4. SDE-2 Core Upgrades: Concurrency, Deep Indexing & AI Safety
+### 4. Advanced System Capabilities: Concurrency, Deep Indexing & AI Safety
 * **Bi-Temporal Salary Ledger (`salary_revisions`)**: Point-in-time immutable compensation tracking with `effective_from` / `effective_to` validity intervals, snapshot FX rates, change reason, and author.
 * **Optimistic Concurrency Control (OCC)**: Atomic `version` counter and `FOR UPDATE` lock. Conflicting concurrent edits fail fast with HTTP `409 Conflict` (`CONCURRENT_MODIFICATION`) and prompt the user to reload the latest state.
 * **Keyset Cursor Pagination & Covering Index**: Direct seek `(base_salary_usd, id) < ($1, $2)` on `idx_employees_covering_grid` with `INCLUDE (...)` clause, achieving **0.03ms execution time (270x faster)** on deep pages with **0 heap fetches**.

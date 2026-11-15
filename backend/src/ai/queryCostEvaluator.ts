@@ -12,7 +12,7 @@ export interface CostEvaluationResult {
 
 /**
  * Pre-flight PostgreSQL EXPLAIN cost evaluator.
- * Acts as an SDE-2 database circuit breaker:
+ * Acts as a database query circuit breaker:
  * Before letting any LLM-generated SQL touch the database engine,
  * runs EXPLAIN (FORMAT JSON) to calculate the PostgreSQL planner's Total Cost.
  * If the estimated cost exceeds the safety budget (e.g., unbounded Cartesian products or full table cross joins),

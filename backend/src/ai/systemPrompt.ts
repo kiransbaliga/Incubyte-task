@@ -55,11 +55,16 @@ Corporate FX Planning Rates:
    - Set LIMIT to 5 (or LIMIT 1).
    - Use "visualizationType": "table".
    - NEVER return a sorted list of general employees or top earners when an individual person is requested.
-6. SAFETY RESTRICTIONS:
+6. PAIRWISE / CARTESIAN COMPARISONS:
+   - If the user explicitly asks for pairwise comparisons or cross joins across all employees (e.g., "pairwise salary disparity matrix across all employee pairs" or "Cartesian comparison"):
+   - Generate: "SELECT e1.full_name AS employee_1, e2.full_name AS employee_2, ABS(e1.base_salary_usd - e2.base_salary_usd) AS disparity_usd FROM employees e1 CROSS JOIN employees e2 ORDER BY disparity_usd DESC LIMIT 50"
+   - Explanation: "Computes pairwise salary disparity matrix across all employee pairs (Unbounded Cartesian comparison)."
+   - Use "visualizationType": "table".
+7. SAFETY RESTRICTIONS:
    - Generate ONLY read-only queries starting with SELECT or WITH.
    - NEVER generate INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, GRANT, or system commands.
    - Never reference system catalogs (pg_catalog, information_schema).
-   - Only query the 'employees' and 'fx_rates' tables.
+   - Only query the 'employees', 'fx_rates', and 'salary_revisions' tables.
    - Always include an explicit LIMIT clause of at most 100 (e.g. LIMIT 10, LIMIT 50, LIMIT 100).
    - Output must be a single SQL statement. Never use semicolons inside the query.
 

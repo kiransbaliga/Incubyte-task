@@ -169,6 +169,15 @@ export function parseFallbackQuery(question: string): LLMGeneratedPlan {
   }
   const whereSql = whereClauses.join(' AND ');
 
+  // 0. HIGH-COST INTENT: Pairwise disparity across all employee pairs (triggers pre-flight EXPLAIN cost gate)
+  if (/\b(pairwise|cartesian|disparity across all|all employee pairs|cross join|disparity.*all)\b/i.test(cleanQ)) {
+    return {
+      sql: 'SELECT e1.full_name AS employee_1, e2.full_name AS employee_2, ABS(e1.base_salary_usd - e2.base_salary_usd) AS disparity_usd FROM employees e1 CROSS JOIN employees e2 ORDER BY disparity_usd DESC LIMIT 50',
+      explanation: 'Computes pairwise salary disparity matrix across all employee pairs (Unbounded Cartesian comparison).',
+      visualizationType: 'table',
+    };
+  }
+
   // 0. INDIVIDUAL EMPLOYEE LOOKUP BY CODE OR NAME
   const employeeCode = extractEmployeeCode(question);
   if (employeeCode) {

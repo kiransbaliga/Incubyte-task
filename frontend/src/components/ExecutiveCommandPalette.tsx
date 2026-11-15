@@ -87,6 +87,17 @@ export function ExecutiveCommandPalette({
         onClose();
       },
     },
+    {
+      id: 'ai-cost-gate-test',
+      category: 'ai',
+      title: 'Calculate pairwise salary disparity matrix for all employee pairs',
+      subtitle: 'Demonstrates pre-flight EXPLAIN cost gate circuit breaker (exceeds budget)',
+      badge: 'Circuit Breaker',
+      action: () => {
+        onTriggerAiQuery('Calculate pairwise salary disparity matrix for all employee pairs');
+        onClose();
+      },
+    },
 
     // Filter Presets
     {

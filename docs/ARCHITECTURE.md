@@ -325,9 +325,9 @@ See [`docs/adr/`](file:///Users/narix/Code/interview/Incubyte/docs/adr/) for det
 
 ---
 
-## 9. SDE-2 Senior Engineering Upgrades
+## 9. Advanced Production Architecture & Systems Design
 
-To elevate the ACME Compensation Hub to senior production engineering caliber, three surgical architectural systems were implemented:
+To ensure the ACME Compensation Hub satisfies high-throughput enterprise production requirements, three core architectural subsystems were implemented:
 
 ### 9.1 Concurrency Correctness: Bi-Temporal Append-Only Salary Ledger & OCC
 - **Problem**: In-place mutations (`UPDATE employees SET salary = X`) destroy historical audit trails and permit lost updates when multiple managers edit concurrently.

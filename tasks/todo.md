@@ -1,4 +1,4 @@
-# SDE-2 Upgrades: Tasks & Verification Checklist
+# Core Capabilities: Tasks & Verification Checklist
 
 ## Phase 1: Bi-Temporal Append-Only Ledger & Optimistic Concurrency Control (Feature 1)
 - [x] **Task 1.1**: Add `salary_revisions` schema, `employees.version` column, and database migration.

@@ -58,6 +58,12 @@ const PROMPT_CARDS = [
     description: 'Calculate organizational averages and personnel distributions',
     icon: '📊',
   },
+  {
+    title: 'Cost Gate Circuit Breaker',
+    prompt: 'Calculate pairwise salary disparity matrix for all employee pairs',
+    description: 'Triggers pre-flight EXPLAIN cost gate (>5,000 budget) to block Cartesian cross-join',
+    icon: '🛡️',
+  },
 ];
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -144,13 +150,16 @@ export function DedicatedChatView({ initialPrompt }: DedicatedChatViewProps = {}
         },
       ]);
     } catch (err: any) {
+      const isCostGate = err.message?.toLowerCase().includes('exceeds the maximum') || err.message?.toLowerCase().includes('cost');
       setMessages((prev) => [
         ...prev,
         {
           id: assistantMsgId,
           sender: 'assistant',
-          text: 'I was unable to answer this question.',
-          error: err.message || 'An error occurred while verifying AST SQL safety guardrails.',
+          text: isCostGate
+            ? 'Execution blocked: PostgreSQL planner estimated cost exceeds the safety budget.'
+            : 'I was unable to answer this question.',
+          error: err.message || 'An error occurred while evaluating query execution safety.',
         },
       ]);
     } finally {
@@ -292,7 +301,12 @@ export function DedicatedChatView({ initialPrompt }: DedicatedChatViewProps = {}
                 <Text type="supporting" color="secondary" style={{ fontSize: '12px', fontWeight: 600 }}>
                   {isUser ? 'You' : 'ACME Pay Copilot'}
                 </Text>
-                {!isUser && <Badge variant="green" label="Verified AST Read-Only" />}
+                {!isUser && (
+                  <Badge
+                    variant={msg.error ? 'red' : 'green'}
+                    label={msg.error ? 'Circuit Breaker Intercept' : 'Verified AST Read-Only'}
+                  />
+                )}
               </div>
 
               {/* Message Bubble Container */}
@@ -322,13 +336,23 @@ export function DedicatedChatView({ initialPrompt }: DedicatedChatViewProps = {}
                   {msg.error && (
                     <div
                       style={{
-                        padding: '10px 14px',
+                        padding: '12px 14px',
                         borderRadius: '8px',
                         backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
                       }}
                     >
-                      <Text style={{ color: '#ef4444', fontSize: '13px' }}>{msg.error}</Text>
+                      <HStack gap={1.5} align="start">
+                        <span style={{ fontSize: '15px', marginTop: '1px' }}>🛡️</span>
+                        <VStack gap={0.5}>
+                          <Text weight="bold" style={{ color: '#ef4444', fontSize: '12px' }}>
+                            Pre-Flight Cost Gate Protection Active
+                          </Text>
+                          <Text style={{ color: '#dc2626', fontSize: '12px', lineHeight: '1.5' }}>
+                            {msg.error}
+                          </Text>
+                        </VStack>
+                      </HStack>
                     </div>
                   )}
 

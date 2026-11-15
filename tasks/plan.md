@@ -1,4 +1,4 @@
-# Implementation Plan: SDE-2 Core Upgrades (Features 1, 2, and 3)
+# Implementation Plan: Core System Capabilities (Features 1, 2, and 3)
 
 ## Overview
 Transform the ACME Compensation Hub from a standard CRUD application into a high-concurrency, scale-resilient, enterprise financial intelligence platform. This plan implements three architectural pillars:

@@ -144,6 +144,13 @@ describe('AI Query Engine & LLM Provider Unit Tests', () => {
       await expect(evaluateQueryCost(sql, 0.001)).rejects.toThrow(QueryCostExceededError);
     });
 
+    it('rejects high-cost Cartesian pairwise employee disparity query via pre-flight cost gate', async () => {
+      delete process.env.GROQ_API_KEY;
+
+      const highCostPrompt = 'Calculate pairwise salary disparity matrix for all employee pairs';
+      await expect(executeAIQuery(highCostPrompt)).rejects.toThrow(QueryCostExceededError);
+    });
+
     it('semantic cache normalizes whitespace and punctuation, serving repeated queries in <2ms', async () => {
       queryCache.clear();
       expect(queryCache.normalizeKey('What is the average salary in Germany???')).toBe('what is the average salary in germany');
